@@ -14,6 +14,7 @@
 		553053EF2F219CD2001D3C80 /* Exceptions for "Packages" folder in "TheDriver" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Platform,
 				Simulator,
 			);
 			target = 553053DA2F219955001D3C80 /* TheDriver */;
