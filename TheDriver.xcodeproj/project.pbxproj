@@ -10,10 +10,28 @@
 		553053DB2F219955001D3C80 /* TheDriver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheDriver.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		553053EF2F219CD2001D3C80 /* Exceptions for "Packages" folder in "TheDriver" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Simulator,
+			);
+			target = 553053DA2F219955001D3C80 /* TheDriver */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		553053DD2F219955001D3C80 /* Application */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Application;
+			sourceTree = "<group>";
+		};
+		553053EC2F219CAA001D3C80 /* Packages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				553053EF2F219CD2001D3C80 /* Exceptions for "Packages" folder in "TheDriver" target */,
+			);
+			path = Packages;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +50,7 @@
 		553053D22F219955001D3C80 = {
 			isa = PBXGroup;
 			children = (
+				553053EC2F219CAA001D3C80 /* Packages */,
 				553053DD2F219955001D3C80 /* Application */,
 				553053DC2F219955001D3C80 /* Products */,
 			);
@@ -62,6 +81,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				553053DD2F219955001D3C80 /* Application */,
+				553053EC2F219CAA001D3C80 /* Packages */,
 			);
 			name = TheDriver;
 			packageProductDependencies = (
