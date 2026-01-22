@@ -6,25 +6,30 @@ struct DeviceCell: View {
   
   var body: some View {
     VStack(alignment: .leading) {
-      DeviceStateBadge(state: device.state)
-      
-      HStack {
-        iconView
+      HStack(spacing: 4) {
+        DeviceStateBadge(state: device.state)
         
-        titleView
+        osView
       }
+      
+      titleView
+    }
+    .padding()
+    .background {
+      RoundedRectangle(cornerRadius: 16)
+        .fill(.windowBackground)
     }
   }
   
-  private var iconView: some View {
-    Image(systemName: device.systemName)
-      .renderingMode(.template)
-      .font(.title)
-      .foregroundStyle(.foreground)
-      .padding()
+  private var osView: some View {
+    Text(device.os)
+      .font(.caption)
+      .foregroundStyle(.primary.secondary)
+      .padding(.vertical, 4)
+      .padding(.horizontal, 6)
       .background {
-        RoundedRectangle(cornerRadius: 8)
-          .fill(.gray.secondary)
+        RoundedRectangle(cornerRadius: 4)
+          .foregroundStyle(.background.secondary)
       }
   }
   
@@ -32,17 +37,6 @@ struct DeviceCell: View {
     Text(device.name)
       .font(.title)
       .foregroundStyle(.foreground)
-  }
-}
-
-fileprivate extension SimulatorDevice {
-  var systemName: String {
-    if isIPhone {
-      "iphone"
-    } else if isIPad {
-      "ipad"
-    } else {
-      "apple.logo"
-    }
+      .frame(maxWidth: .infinity, alignment: .leading)
   }
 }

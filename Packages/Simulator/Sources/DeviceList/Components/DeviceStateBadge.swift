@@ -8,12 +8,11 @@ struct DeviceStateBadge: View {
     Text(state.title)
       .font(.caption)
       .foregroundStyle(state.textColor)
-      .padding(4)
+      .padding(.vertical, 4)
+      .padding(.horizontal, 6)
       .background {
-        if state.isBooted {
-          RoundedRectangle(cornerRadius: 4)
-            .fill(.tint)
-        }
+        RoundedRectangle(cornerRadius: 4)
+          .foregroundStyle(state.isBooted ? .blue.opacity(0.2) : .gray.opacity(0.2))
       }
   }
 }
@@ -21,15 +20,15 @@ struct DeviceStateBadge: View {
 fileprivate extension DeviceState {
   var title: String {
     switch self {
-    case .booted: "실행중"
-    case .shutdown: "꺼져있음"
+    case .booted: "부팅 됨"
+    case .shutdown: "사용 가능"
     }
   }
   
-  var textColor: HierarchicalShapeStyle {
+  var textColor: Color {
     switch self {
-    case .booted: .primary
-    case .shutdown: .secondary
+    case .booted: .blue
+    case .shutdown: .gray.opacity(0.6)
     }
   }
 }
