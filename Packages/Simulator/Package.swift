@@ -20,6 +20,12 @@ let package = Package(
         .product(name: "FeatureCore", package: "Platform"),
       ]
     ),
+    .target(
+      name: "SimulatorClient",
+      dependencies: [
+        .product(name: "ClientCore", package: "Platform")
+      ]
+    ),
   ]
 )
 
