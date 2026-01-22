@@ -1,6 +1,7 @@
 import FeatureCore
 import SwiftUI
 
+@ViewAction(for: DeviceListFeature.self)
 public struct DeviceListView: View {
   public let store: StoreOf<DeviceListFeature>
   
@@ -11,6 +12,9 @@ public struct DeviceListView: View {
   public var body: some View {
     VStack(spacing: .zero) {
       
+    }
+    .onAppear {
+      send(.onAppear)
     }
   }
 }

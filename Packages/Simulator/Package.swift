@@ -17,6 +17,7 @@ let package = Package(
     .target(
       name: "DeviceList",
       dependencies: [
+        "SimulatorClient",
         .product(name: "FeatureCore", package: "Platform"),
       ]
     ),
