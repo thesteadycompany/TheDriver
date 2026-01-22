@@ -4,12 +4,21 @@ import PackageDescription
 
 let package = Package(
   name: "Simulator",
+  platforms: [
+    .macOS(.v15),
+  ],
   products: [
-    .singleTargetLibrary("Simulator")
+    .singleTargetLibrary("DeviceList")
+  ],
+  dependencies: [
+    .package(path: "../Platform"),
   ],
   targets: [
     .target(
-      name: "Simulator"
+      name: "DeviceList",
+      dependencies: [
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
     ),
   ]
 )
