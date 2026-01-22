@@ -33,17 +33,7 @@ extension SimulatorClient: DependencyKey {
       
       try JSONDecoder()
         .decode(DevicesResponse.self, from: data)
-        .devices
-        .flatMap { $0.value }
-        .compactMap { response -> SimulatorDevice? in
-          guard let state = DeviceState(rawValue: response.state) else { return nil }
-          return .init(
-            udid: response.udid,
-            name: response.name,
-            state: state,
-            isAvailable: response.isAvailable ?? false
-          )
-        }
+        .toEntities()
         .sorted(by: { $0.name > $1.name })
         .forEach {
           if $0.state.isBooted {
