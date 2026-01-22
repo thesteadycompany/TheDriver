@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		553053FE2F21D713001D3C80 /* App in Frameworks */ = {isa = PBXBuildFile; productRef = 553053FD2F21D713001D3C80 /* App */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		553053DB2F219955001D3C80 /* TheDriver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheDriver.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -14,6 +18,7 @@
 		553053EF2F219CD2001D3C80 /* Exceptions for "Packages" folder in "TheDriver" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				App,
 				Platform,
 				Simulator,
 			);
@@ -42,6 +47,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				553053FE2F21D713001D3C80 /* App in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,6 +59,7 @@
 			children = (
 				553053EC2F219CAA001D3C80 /* Packages */,
 				553053DD2F219955001D3C80 /* Application */,
+				553053FC2F21D713001D3C80 /* Frameworks */,
 				553053DC2F219955001D3C80 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -63,6 +70,13 @@
 				553053DB2F219955001D3C80 /* TheDriver.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		553053FC2F21D713001D3C80 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -86,6 +100,7 @@
 			);
 			name = TheDriver;
 			packageProductDependencies = (
+				553053FD2F21D713001D3C80 /* App */,
 			);
 			productName = TheDriver;
 			productReference = 553053DB2F219955001D3C80 /* TheDriver.app */;
@@ -274,6 +289,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 62ZLDXLZ77;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -306,6 +322,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 62ZLDXLZ77;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -352,6 +369,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		553053FD2F21D713001D3C80 /* App */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = App;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 553053D32F219955001D3C80 /* Project object */;
 }
