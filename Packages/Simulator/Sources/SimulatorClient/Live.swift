@@ -28,20 +28,31 @@ extension SimulatorClient: DependencyKey {
         throw SimulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
       }
       let data = Data(stdOut.utf8)
-      return try JSONDecoder()
+      var bootedDevices: [SimulatorDevice] = []
+      var shutdownDevices: [SimulatorDevice] = []
+      
+      try JSONDecoder()
         .decode(DevicesResponse.self, from: data)
         .devices
         .flatMap { $0.value }
-        .compactMap {
-          guard let state = DeviceState(rawValue: $0.state) else { return nil }
+        .compactMap { response -> SimulatorDevice? in
+          guard let state = DeviceState(rawValue: response.state) else { return nil }
           return .init(
-            udid: $0.udid,
-            name: $0.name,
+            udid: response.udid,
+            name: response.name,
             state: state,
-            isAvailable: $0.isAvailable ?? false
+            isAvailable: response.isAvailable ?? false
           )
         }
         .sorted(by: { $0.name > $1.name })
+        .forEach {
+          if $0.state.isBooted {
+            bootedDevices.append($0)
+          } else {
+            shutdownDevices.append($0)
+          }
+        }
+      return bootedDevices + shutdownDevices
     }
   )
 }

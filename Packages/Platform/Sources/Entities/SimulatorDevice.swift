@@ -19,3 +19,13 @@ public struct SimulatorDevice: Equatable, Identifiable, Sendable {
     self.isAvailable = isAvailable
   }
 }
+
+extension SimulatorDevice {
+  public var isIPhone: Bool {
+    name.contains("iPhone")
+  }
+  
+  public var isIPad: Bool {
+    name.contains("iPad")
+  }
+}

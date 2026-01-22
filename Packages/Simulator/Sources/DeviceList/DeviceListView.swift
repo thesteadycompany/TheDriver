@@ -10,8 +10,10 @@ public struct DeviceListView: View {
   }
   
   public var body: some View {
-    VStack(spacing: .zero) {
-      
+    List {
+      ForEach(store.devices) { device in
+        DeviceCell(device: device)
+      }
     }
     .onAppear {
       send(.onAppear)
