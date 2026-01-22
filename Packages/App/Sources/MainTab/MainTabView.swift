@@ -1,16 +1,22 @@
+import DeviceList
 import FeatureCore
 import SwiftUI
 
 public struct MainTabView: View {
-  public let store: StoreOf<MainTabFeature>
+  @Bindable public var store: StoreOf<MainTabFeature>
   
   public init(store: StoreOf<MainTabFeature>) {
     self.store = store
   }
   
   public var body: some View {
-    VStack(spacing: .zero) {
-      Text("Hello, MainTab")
+    TabView(selection: $store.currentTab) {
+      Tab("기기 목록", systemImage: "iphone.motion", value: .deviceList) {
+        DeviceListView(
+          store: store.scope(state: \.deviceList, action: \.child.deviceList)
+        )
+      }
     }
+    .tabViewStyle(.sidebarAdaptable)
   }
 }
