@@ -5,28 +5,7 @@ import Foundation
 extension SimulatorClient: DependencyKey {
   public static let liveValue = SimulatorClient(
     requestDevices: {
-      let path = "/usr/bin/xcrun"
-      let process = Process()
-      process.executableURL = .init(fileURLWithPath: path)
-      process.arguments = ["simctl", "list", "devices", "--json"]
-      let outPipe = Pipe()
-      let errorPipe = Pipe()
-      process.standardOutput = outPipe
-      process.standardError = errorPipe
-      do {
-        try process.run()
-      } catch {
-        throw SimulatorError.notFound(path: path)
-      }
-      process.waitUntilExit()
-      let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-      let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-      let stdOut = String(data: outData, encoding: .utf8) ?? ""
-      let stdError = String(data: errorData, encoding: .utf8) ?? ""
-      
-      if process.terminationStatus != 0 {
-        throw SimulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
-      }
+      let stdOut = try Runner.shared.run(.listDevices)
       let data = Data(stdOut.utf8)
       var bootedDevices: [SimulatorDevice] = []
       var shutdownDevices: [SimulatorDevice] = []
@@ -43,6 +22,43 @@ extension SimulatorClient: DependencyKey {
           }
         }
       return bootedDevices + shutdownDevices
+    },
+    bootDevice: { udid in
+      try Runner.shared.run(.boot(udid: udid))
+    },
+    shutdownDevice: { udid in
+      try Runner.shared.run(.shutdown(udid: udid))
     }
   )
+}
+
+struct Runner: Sendable {
+  private let path = "/usr/bin/xcrun"
+  
+  static let shared = Runner()
+  
+  @discardableResult
+  func run(_ command: SimctlCommand) throws -> String {
+    let process = Process()
+    process.executableURL = .init(fileURLWithPath: path)
+    process.arguments = command.arguments
+    let outPipe = Pipe()
+    let errorPipe = Pipe()
+    process.standardOutput = outPipe
+    process.standardError = errorPipe
+    do {
+      try process.run()
+    } catch {
+      throw SimulatorError.notFound(path: path)
+    }
+    process.waitUntilExit()
+    let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+    let stdOut = String(data: outData, encoding: .utf8) ?? ""
+    let stdError = String(data: errorData, encoding: .utf8) ?? ""
+    if process.terminationStatus != 0 {
+      throw SimulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
+    }
+    return stdOut
+  }
 }

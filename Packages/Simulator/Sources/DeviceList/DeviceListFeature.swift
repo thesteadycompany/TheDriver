@@ -18,11 +18,13 @@ public struct DeviceListFeature {
     
     @CasePathable
     public enum Local {
+      case reload
       case setDevices([SimulatorDevice])
     }
     
     @CasePathable
     public enum View {
+      case deviceTapped(SimulatorDevice)
       case onAppear
     }
   }
@@ -42,15 +44,7 @@ public struct DeviceListFeature {
   
   private func local(_ state: inout State, _ action: Action.Local) -> Effect<Action> {
     switch action {
-    case let .setDevices(devices):
-      state.devices = devices
-      return .none
-    }
-  }
-  
-  private func view(_ state: inout State, _ action: Action.View) -> Effect<Action> {
-    switch action {
-    case .onAppear:
+    case .reload:
       @Dependency(SimulatorClient.self) var client
       return .run { send in
         let devices = try await client.requestDevices()
@@ -59,6 +53,39 @@ public struct DeviceListFeature {
         // TODO: - Handle Error
         print(error.localizedDescription)
       }
+      
+    case let .setDevices(devices):
+      state.devices = devices
+      return .none
+    }
+  }
+  
+  private func view(_ state: inout State, _ action: Action.View) -> Effect<Action> {
+    switch action {
+    case let .deviceTapped(device):
+      @Dependency(SimulatorClient.self) var client
+      switch device.state {
+      case .booted:
+        return .run { send in
+          try client.shutdownDevice(udid: device.udid)
+          await send(.local(.reload))
+        } catch: { error, send in
+          // TODO: - Handle Error
+          print(error.localizedDescription)
+        }
+        
+      case .shutdown:
+        return .run { send in
+          try client.bootDevice(udid: device.udid)
+          await send(.local(.reload))
+        } catch: { error, send in
+          // TODO: - Handle Error
+          print(error.localizedDescription)
+        }
+      }
+      
+    case .onAppear:
+      return .send(.local(.reload))
     }
   }
 }

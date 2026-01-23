@@ -14,7 +14,9 @@ public struct DeviceListView: View {
     ScrollView {
       LazyVGrid(columns: columns) {
         ForEach(store.devices) { device in
-          DeviceCell(device: device)
+          DeviceCell(device: device) {
+            send(.deviceTapped(device))
+          }
         }
       }
     }
