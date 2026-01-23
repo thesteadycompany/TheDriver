@@ -25,6 +25,7 @@ let package = Package(
       name: "MainTab",
       dependencies: [
         .product(name: "DeviceList", package: "Simulator"),
+        .product(name: "DeviceLogging", package: "Simulator"),
         .product(name: "FeatureCore", package: "Platform"),
       ]
     )
