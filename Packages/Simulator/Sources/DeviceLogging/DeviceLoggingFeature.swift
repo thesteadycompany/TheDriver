@@ -63,7 +63,7 @@ public struct DeviceLoggingFeature {
       return .run { send in
         let devices = try await client
           .requestDevices()
-          .filter { $0.state == .booted }
+          .bootedDevices
         await send(.local(.setDevices(devices)))
       } catch: { error, send in
         // TODO: - Handle Error

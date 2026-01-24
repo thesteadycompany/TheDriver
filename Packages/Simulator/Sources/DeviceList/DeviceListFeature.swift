@@ -6,7 +6,8 @@ import SimulatorClient
 public struct DeviceListFeature {
   @ObservableState
   public struct State: Equatable {
-    var devices: [SimulatorDevice] = []
+    var bootedDevices: [SimulatorDevice] = []
+    var shutdownGroups: [DeviceGroup] = []
     
     public init() {}
   }
@@ -19,7 +20,7 @@ public struct DeviceListFeature {
     @CasePathable
     public enum Local {
       case reload
-      case setDevices([SimulatorDevice])
+      case setDevices(SimulatorClient.Devices)
     }
     
     @CasePathable
@@ -55,7 +56,8 @@ public struct DeviceListFeature {
       }
       
     case let .setDevices(devices):
-      state.devices = devices
+      state.bootedDevices = devices.bootedDevices
+      state.shutdownGroups = devices.shutdownGroups
       return .none
     }
   }

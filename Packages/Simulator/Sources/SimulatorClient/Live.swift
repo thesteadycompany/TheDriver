@@ -8,20 +8,28 @@ extension SimulatorClient: DependencyKey {
       let stdOut = try Runner.shared.run(.listDevices)
       let data = Data(stdOut.utf8)
       var bootedDevices: [SimulatorDevice] = []
-      var shutdownDevices: [SimulatorDevice] = []
+      var shutdownGroups: [DeviceGroup] = []
       
       try JSONDecoder()
         .decode(DevicesResponse.self, from: data)
         .toEntities()
         .sorted(by: { $0.name > $1.name })
-        .forEach {
-          if $0.state.isBooted {
-            bootedDevices.append($0)
+        .sorted(by: { $0.os > $1.os })
+        .forEach { device in
+          if device.state.isBooted {
+            bootedDevices.append(device)
           } else {
-            shutdownDevices.append($0)
+            if let index = shutdownGroups.firstIndex(where: { $0.os == device.os }) {
+              shutdownGroups[index].append(device)
+            } else {
+              shutdownGroups.append(.init(device: device))
+            }
           }
         }
-      return bootedDevices + shutdownDevices
+      return .init(
+        bootedDevices: bootedDevices,
+        shutdownGroups: shutdownGroups
+      )
     },
     bootDevice: { udid in
       try Runner.shared.run(.boot(udid: udid))
