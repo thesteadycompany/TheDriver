@@ -37,6 +37,19 @@ extension SimulatorClient: DependencyKey {
     shutdownDevice: { udid in
       try Runner.shared.run(.shutdown(udid: udid))
     },
+    installApp: { udid, appPath in
+      _ = try await Runner.shared.runAsync(.bootStatus(udid: udid))
+      _ = try await Runner.shared.runAsync(.install(udid: udid, appPath: appPath))
+    },
+    launchApp: { udid, bundleId, arguments, options in
+      if options.console, (options.stdoutPath != nil || options.stderrPath != nil) {
+        throw SimulatorError.invalidArguments(description: "--console cannot be combined with --stdout/--stderr")
+      }
+      _ = try await Runner.shared.runAsync(.bootStatus(udid: udid))
+      return try await Runner.shared.runAsync(
+        .launch(udid: udid, bundleId: bundleId, arguments: arguments, options: options)
+      )
+    },
     startLogging: { udid in
       try await LogStreamer.shared.start(udid: udid)
     },
@@ -74,6 +87,41 @@ struct Runner: Sendable {
       throw SimulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
     }
     return stdOut
+  }
+
+  @discardableResult
+  func runAsync(_ command: SimctlCommand) async throws -> String {
+    let process = Process()
+    process.executableURL = .init(fileURLWithPath: path)
+    process.arguments = command.arguments
+
+    let outPipe = Pipe()
+    let errorPipe = Pipe()
+    process.standardOutput = outPipe
+    process.standardError = errorPipe
+
+    return try await withCheckedThrowingContinuation { continuation in
+      process.terminationHandler = { process in
+        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        let stdOut = String(data: outData, encoding: .utf8) ?? ""
+        let stdError = String(data: errorData, encoding: .utf8) ?? ""
+
+        if process.terminationStatus != 0 {
+          continuation.resume(
+            throwing: SimulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
+          )
+        } else {
+          continuation.resume(returning: stdOut)
+        }
+      }
+
+      do {
+        try process.run()
+      } catch {
+        continuation.resume(throwing: SimulatorError.notFound(path: path))
+      }
+    }
   }
 }
 
