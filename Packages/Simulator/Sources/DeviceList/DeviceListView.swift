@@ -4,7 +4,6 @@ import SwiftUI
 @ViewAction(for: DeviceListFeature.self)
 public struct DeviceListView: View {
   public let store: StoreOf<DeviceListFeature>
-  private let columns = Array(repeating: GridItem(.flexible()), count: 3)
   
   public init(store: StoreOf<DeviceListFeature>) {
     self.store = store
@@ -12,16 +11,23 @@ public struct DeviceListView: View {
   
   public var body: some View {
     ScrollView {
-      LazyVGrid(columns: columns) {
-        ForEach(store.devices) { device in
-          DeviceCell(device: device) {
-            send(.deviceTapped(device))
+      VStack(spacing: DesignTokens.Spacing.x8) {
+        BootedDeviceView(devices: store.bootedDevices) {
+          send(.deviceTapped($0))
+        }
+        
+        ForEach(store.shutdownGroups) { group in
+          DeviceGroupView(group: group) {
+            send(.deviceTapped($0))
           }
         }
       }
+      .padding(.horizontal, DesignTokens.Spacing.x6)
+      .padding(.vertical, DesignTokens.Spacing.x8)
     }
     .onAppear {
       send(.onAppear)
     }
+    .background(DesignTokens.Colors.background)
   }
 }

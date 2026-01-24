@@ -6,13 +6,17 @@ struct DeviceStateBadge: View {
   
   var body: some View {
     Text(state.title)
-      .font(.caption)
-      .foregroundStyle(state.textColor)
-      .padding(.vertical, 4)
-      .padding(.horizontal, 6)
+      .font(DesignTokens.Typography.caption.font)
+      .foregroundStyle(state.isBooted ? DesignTokens.Colors.accent : DesignTokens.Colors.mutedText)
+      .padding(.vertical, DesignTokens.Spacing.x1)
+      .padding(.horizontal, DesignTokens.Spacing.x2)
       .background {
-        RoundedRectangle(cornerRadius: 4)
-          .foregroundStyle(state.isBooted ? .blue.opacity(0.2) : .gray.opacity(0.2))
+        RoundedRectangle(cornerRadius: DesignTokens.Radius.control)
+          .foregroundStyle(
+            state.isBooted
+              ? DesignTokens.Colors.accent.opacity(0.15)
+              : DesignTokens.Colors.surfaceAccent
+          )
       }
   }
 }
@@ -22,13 +26,6 @@ fileprivate extension DeviceState {
     switch self {
     case .booted: "부팅 됨"
     case .shutdown: "사용 가능"
-    }
-  }
-  
-  var textColor: Color {
-    switch self {
-    case .booted: .blue
-    case .shutdown: .gray.opacity(0.6)
     }
   }
 }

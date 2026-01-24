@@ -9,6 +9,7 @@ let package = Package(
   ],
   products: [
     .singleTargetLibrary("ClientCore"),
+    .singleTargetLibrary("DesignSystem"),
     .singleTargetLibrary("FeatureCore"),
   ],
   dependencies: [
@@ -25,11 +26,18 @@ let package = Package(
       ]
     ),
     .target(
+      name: "DesignSystem",
+      exclude: [
+        "Preview",
+      ]
+    ),
+    .target(
       name: "Entities"
     ),
     .target(
       name: "FeatureCore",
       dependencies: [
+        "DesignSystem",
         "Entities",
         .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
       ]

@@ -24,42 +24,48 @@ struct DeviceCell: View {
       }
       
       titleView
-        .padding(.top, 8)
+        .padding(.top, DesignTokens.Spacing.x2)
       
       actionButton
-        .padding(.top, 16)
+        .padding(.top, DesignTokens.Spacing.x4)
     }
-    .padding()
+    .padding(DesignTokens.Spacing.x4)
     .background {
-      RoundedRectangle(cornerRadius: 16)
-        .fill(.windowBackground)
+      RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
+        .fill(DesignTokens.Colors.surface)
+    }
+    .overlay {
+      RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
+        .stroke(DesignTokens.Colors.border, lineWidth: 1)
     }
   }
   
   private var osView: some View {
-    Text(device.os)
-      .font(.caption)
-      .foregroundStyle(.primary.secondary)
-      .padding(.vertical, 4)
-      .padding(.horizontal, 6)
+    return Text(device.os)
+      .font(DesignTokens.Typography.caption.font)
+      .foregroundStyle(DesignTokens.Colors.mutedText)
+      .padding(.vertical, DesignTokens.Spacing.x1)
+      .padding(.horizontal, DesignTokens.Spacing.x2)
       .background {
-        RoundedRectangle(cornerRadius: 4)
-          .foregroundStyle(.background.secondary)
+        RoundedRectangle(cornerRadius: DesignTokens.Radius.control)
+          .foregroundStyle(DesignTokens.Colors.surfaceAccent)
       }
   }
   
   private var titleView: some View {
-    Text(device.name)
-      .font(.title)
-      .foregroundStyle(.foreground)
+    return Text(device.name)
+      .font(DesignTokens.Typography.headline.font)
+      .foregroundStyle(DesignTokens.Colors.text)
       .frame(maxWidth: .infinity, alignment: .leading)
   }
   
   private var actionButton: some View {
-    Button(action: action) {
+    return Button(action: action) {
       Text(buttonTitle)
+        .font(DesignTokens.Typography.button.font)
     }
     .buttonStyle(.borderedProminent)
+    .tint(DesignTokens.Colors.accent)
     .disabled(!device.isAvailable)
   }
 }

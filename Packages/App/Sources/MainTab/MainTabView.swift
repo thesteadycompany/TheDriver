@@ -24,5 +24,6 @@ public struct MainTabView: View {
       }
     }
     .tabViewStyle(.sidebarAdaptable)
+    .background(DesignTokens.Colors.background)
   }
 }

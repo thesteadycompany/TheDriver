@@ -13,5 +13,7 @@ public struct AppView: View {
     MainTabView(
       store: store.scope(state: \.mainTab, action: \.mainTab)
     )
+    .tint(DesignTokens.Colors.accent)
+    .background(DesignTokens.Colors.background)
   }
 }
