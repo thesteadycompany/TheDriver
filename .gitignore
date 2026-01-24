@@ -69,6 +69,11 @@ fastlane/test_output
 
 .DS_Store
 
+# Sisyphus / OpenCode session state
+.sisyphus/*
+!.sisyphus/plans/
+!.sisyphus/plans/**
+
 #IDE
 .idea/*
 .cursor/*
