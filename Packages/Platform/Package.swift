@@ -26,10 +26,7 @@ let package = Package(
       ]
     ),
     .target(
-      name: "DesignSystem",
-      exclude: [
-        "Preview",
-      ]
+      name: "DesignSystem"
     ),
     .target(
       name: "Entities"
