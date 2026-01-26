@@ -12,15 +12,18 @@ public struct MainTabView: View {
   
   public var body: some View {
     TabView(selection: $store.currentTab) {
-      Tab("기기 목록", systemImage: "iphone.motion", value: .deviceList) {
-        DeviceListView(
-          store: store.scope(state: \.deviceList, action: \.child.deviceList)
-        )
-      }
-      Tab("기기 로그", systemImage: "apple.terminal", value: .deviceLogging) {
-        DeviceLoggingView(
-          store: store.scope(state: \.deviceLogging, action: \.child.deviceLogging)
-        )
+      TabSection("기기") {
+        Tab("목록", systemImage: "iphone.motion", value: MainTabs.deviceList) {
+          DeviceListView(
+            store: store.scope(state: \.deviceList, action: \.child.deviceList)
+          )
+        }
+        
+        Tab("로그", systemImage: "apple.terminal", value: MainTabs.deviceLogging) {
+          DeviceLoggingView(
+            store: store.scope(state: \.deviceLogging, action: \.child.deviceLogging)
+          )
+        }
       }
     }
     .tabViewStyle(.sidebarAdaptable)
