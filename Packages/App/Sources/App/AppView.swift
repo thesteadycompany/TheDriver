@@ -15,5 +15,6 @@ public struct AppView: View {
     )
     .tint(DesignTokens.Colors.accent)
     .background(DesignTokens.Colors.background)
+    .frame(minWidth: 800, minHeight: 400)
   }
 }
