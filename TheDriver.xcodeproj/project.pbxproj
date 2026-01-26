@@ -19,9 +19,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App,
-				Clients,
+        Clients,
+				Feature,
 				Platform,
-				Simulator,
 			);
 			target = 553053DA2F219955001D3C80 /* TheDriver */;
 		};

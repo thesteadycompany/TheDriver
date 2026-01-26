@@ -1,6 +1,6 @@
 # Packages/Simulator
 
-This package owns simulator-oriented features and side effects (via `SimulatorClient`).
+This package owns side effects (via `SimulatorClient`).
 
 ## Side Effects Policy
 - Use swift-dependencies clients for side effects; avoid ad-hoc singletons.
@@ -9,12 +9,6 @@ This package owns simulator-oriented features and side effects (via `SimulatorCl
 References:
 - Client API: `Packages/Simulator/Sources/SimulatorClient/Client.swift`
 - Live wiring + runner: `Packages/Simulator/Sources/SimulatorClient/Live.swift`
-
-## Feature Conventions
-- Follow the repo TCA feature template.
-
-Reference:
-- `Packages/Simulator/Sources/DeviceList/DeviceListFeature.swift`
 
 ## Known Risk
 - `SimulatorClient` imports `Entities`/`Dependencies` directly in its source files; ensure target dependencies stay coherent when adding new imports.

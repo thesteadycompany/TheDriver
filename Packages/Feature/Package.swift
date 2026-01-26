@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "Simulator",
+  name: "Feature",
   platforms: [
     .macOS(.v15),
   ],

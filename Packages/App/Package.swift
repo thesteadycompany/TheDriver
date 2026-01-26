@@ -11,8 +11,8 @@ let package = Package(
     .singleTargetLibrary("App"),
   ],
   dependencies: [
+    .package(path: "../Feature"),
     .package(path: "../Platform"),
-    .package(path: "../Simulator"),
   ],
   targets: [
     .target(
@@ -24,8 +24,8 @@ let package = Package(
     .target(
       name: "MainTab",
       dependencies: [
-        .product(name: "DeviceList", package: "Simulator"),
-        .product(name: "DeviceLogging", package: "Simulator"),
+        .product(name: "DeviceList", package: "Feature"),
+        .product(name: "DeviceLogging", package: "Feature"),
         .product(name: "FeatureCore", package: "Platform"),
       ]
     )
