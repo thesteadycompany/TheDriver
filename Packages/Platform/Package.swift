@@ -36,7 +36,15 @@ let package = Package(
       dependencies: [
         "DesignSystem",
         "Entities",
+        "Toast",
         .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+      ]
+    ),
+    .target(
+      name: "Toast",
+      dependencies: [
+        "ClientCore",
+        "DesignSystem",
       ]
     ),
   ]

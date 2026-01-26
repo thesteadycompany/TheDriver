@@ -121,6 +121,7 @@ public enum DesignTokens {
     public static let x5: CGFloat = 20
     public static let x6: CGFloat = 24
     public static let x8: CGFloat = 32
+    public static let x9: CGFloat = 36
     public static let x10: CGFloat = 40
     public static let x12: CGFloat = 48
     public static let x16: CGFloat = 64
