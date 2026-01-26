@@ -47,12 +47,9 @@ public struct DeviceListFeature {
     switch action {
     case .reload:
       @Dependency(SimulatorClient.self) var client
-      return .run { send in
+      return .runWithToast { send in
         let devices = try await client.requestDevices()
         await send(.local(.setDevices(devices)))
-      } catch: { error, send in
-        // TODO: - Handle Error
-        print(error.localizedDescription)
       }
       
     case let .setDevices(devices):
@@ -68,21 +65,15 @@ public struct DeviceListFeature {
       @Dependency(SimulatorClient.self) var client
       switch device.state {
       case .booted:
-        return .run { send in
+        return .runWithToast { send in
           try client.shutdownDevice(udid: device.udid)
           await send(.local(.reload))
-        } catch: { error, send in
-          // TODO: - Handle Error
-          print(error.localizedDescription)
         }
         
       case .shutdown:
-        return .run { send in
+        return .runWithToast { send in
           try client.bootDevice(udid: device.udid)
           await send(.local(.reload))
-        } catch: { error, send in
-          // TODO: - Handle Error
-          print(error.localizedDescription)
         }
       }
       

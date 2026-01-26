@@ -60,14 +60,11 @@ public struct DeviceLoggingFeature {
       
     case .reload:
       @Dependency(SimulatorClient.self) var client
-      return .run { send in
+      return .runWithToast { send in
         let devices = try await client
           .requestDevices()
           .bootedDevices
         await send(.local(.setDevices(devices)))
-      } catch: { error, send in
-        // TODO: - Handle Error
-        print(error.localizedDescription)
       }
       
     case let .setDevices(devices):
@@ -81,15 +78,13 @@ public struct DeviceLoggingFeature {
     case let .connectTapped(device):
       @Dependency(SimulatorClient.self) var client
       state.connectedDevice = device
-      return .run { send in
+      return .runWithToast { send in
         let stream = try await client.startLogging(udid: device.udid)
         for await log in stream {
           await send(.local(.logReceived(log)))
         }
         await send(.local(.disconnectDevice))
-      } catch: { error, send in
-        // TODO: - Handle Error
-        print(error.localizedDescription)
+      } catch: { _, send in
         await send(.local(.disconnectDevice))
       }
       
