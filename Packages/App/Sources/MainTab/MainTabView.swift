@@ -1,3 +1,4 @@
+import AppCenter
 import DeviceList
 import DeviceLogging
 import FeatureCore
@@ -22,6 +23,14 @@ public struct MainTabView: View {
         Tab("로그", systemImage: "apple.terminal", value: MainTabs.deviceLogging) {
           DeviceLoggingView(
             store: store.scope(state: \.deviceLogging, action: \.child.deviceLogging)
+          )
+        }
+      }
+      
+      TabSection("앱") {
+        Tab("앱 센터", systemImage: "app.fill", value: MainTabs.appCenter) {
+          AppCenterView(
+            store: store.scope(state: \.appCenter, action: \.child.appCenter)
           )
         }
       }

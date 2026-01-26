@@ -1,3 +1,4 @@
+import AppCenter
 import DeviceList
 import DeviceLogging
 import FeatureCore
@@ -7,6 +8,7 @@ import Foundation
 public struct MainTabFeature {
   @ObservableState
   public struct State: Equatable {
+    var appCenter: AppCenterFeature.State = .init()
     var currentTab: MainTabs
     var deviceList: DeviceListFeature.State = .init()
     var deviceLogging: DeviceLoggingFeature.State = .init()
@@ -26,6 +28,7 @@ public struct MainTabFeature {
     
     @CasePathable
     public enum Child {
+      case appCenter(AppCenterFeature.Action)
       case deviceList(DeviceListFeature.Action)
       case deviceLogging(DeviceLoggingFeature.Action)
     }
@@ -40,6 +43,9 @@ public struct MainTabFeature {
   
   public var body: some ReducerOf<Self> {
     BindingReducer()
+    Scope(state: \.appCenter, action: \.child.appCenter) {
+      AppCenterFeature()
+    }
     Scope(state: \.deviceList, action: \.child.deviceList) {
       DeviceListFeature()
     }

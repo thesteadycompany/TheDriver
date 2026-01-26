@@ -8,6 +8,7 @@ let package = Package(
     .macOS(.v15),
   ],
   products: [
+    .singleTargetLibrary("AppCenter"),
     .singleTargetLibrary("DeviceList"),
     .singleTargetLibrary("DeviceLogging"),
   ],
@@ -16,6 +17,13 @@ let package = Package(
     .package(path: "../Platform"),
   ],
   targets: [
+    .target(
+      name: "AppCenter",
+      dependencies: [
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
     .target(
       name: "DeviceList",
       dependencies: [
