@@ -12,27 +12,22 @@ let package = Package(
     .singleTargetLibrary("DeviceLogging"),
   ],
   dependencies: [
+    .package(path: "../Clients"),
     .package(path: "../Platform"),
   ],
   targets: [
     .target(
       name: "DeviceList",
       dependencies: [
-        "SimulatorClient",
         .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
       ]
     ),
     .target(
       name: "DeviceLogging",
       dependencies: [
-        "SimulatorClient",
         .product(name: "FeatureCore", package: "Platform"),
-      ]
-    ),
-    .target(
-      name: "SimulatorClient",
-      dependencies: [
-        .product(name: "ClientCore", package: "Platform")
+        .product(name: "SimulatorClient", package: "Clients"),
       ]
     ),
   ]

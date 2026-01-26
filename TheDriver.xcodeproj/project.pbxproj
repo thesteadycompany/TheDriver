@@ -19,6 +19,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				App,
+				Clients,
 				Platform,
 				Simulator,
 			);
