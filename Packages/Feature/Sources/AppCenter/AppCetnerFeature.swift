@@ -2,6 +2,7 @@ import AppBundleClient
 import DevicePicker
 import FeatureCore
 import Foundation
+import SimulatorClient
 import Toast
 import UniformTypeIdentifiers
 
@@ -121,9 +122,18 @@ public struct AppCenterFeature {
       return .none
       
     case let .installTapped(model):
-      // TODO: - Install App Bundle
-      print(model)
-      return .none
+      @Dependency(SimulatorClient.self) var client
+      @Dependency(ToastClient.self) var toastClient
+      guard let device = model.device else {
+        toastClient.showWarning("선택된 기기가 없습니다.")
+        return .none
+      }
+      return .run { send in
+        try await client.installApp(
+          udid: device.udid,
+          appPath: model.appBundle.url.path()
+        )
+      }
       
     case .uploadTapped:
       state.isFileImporterPresented = true
