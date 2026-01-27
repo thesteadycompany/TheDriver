@@ -1,3 +1,4 @@
+import AppBundleClient
 import FeatureCore
 import Foundation
 import Toast
@@ -44,14 +45,11 @@ public struct AppCenterFeature {
   ) -> Effect<Action> {
     switch action {
     case let .fileSelected(.success(url)):
-      @Dependency(ToastClient.self) var toastClient
-      guard url.pathExtension.lowercased() != "app" else {
-        toastClient.showWarning("지원하지 않는 파일 형식입니다.")
-        return .none
+      @Dependency(AppBundleClient.self) var client
+      return .runWithToast { send in
+        let appBundle = try client.appBundle(url: url)
+        // TODO: - Save App Bundle
       }
-      // TODO: - Store URL
-      print(url.absoluteString)
-      return .none
       
     case let .fileSelected(.failure(error)):
       @Dependency(ToastClient.self) var toastClient

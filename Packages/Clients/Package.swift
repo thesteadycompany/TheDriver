@@ -8,12 +8,19 @@ let package = Package(
     .macOS(.v15),
   ],
   products: [
+    .singleTargetLibrary("AppBundleClient"),
     .singleTargetLibrary("SimulatorClient"),
   ],
   dependencies: [
     .package(path: "../Platform"),
   ],
   targets: [
+    .target(
+      name: "AppBundleClient",
+      dependencies: [
+        .product(name: "ClientCore", package: "Platform")
+      ]
+    ),
     .target(
       name: "SimulatorClient",
       dependencies: [

@@ -20,6 +20,7 @@ let package = Package(
     .target(
       name: "AppCenter",
       dependencies: [
+        .product(name: "AppBundleClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
       ]
