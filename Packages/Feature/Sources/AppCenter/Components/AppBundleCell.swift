@@ -32,15 +32,7 @@ struct AppBundleCell: View {
         installButton
       }
     }
-    .padding(DesignTokens.Spacing.x4)
-    .background {
-      RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
-        .fill(DesignTokens.Colors.surface)
-    }
-    .overlay {
-      RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
-        .stroke(DesignTokens.Colors.border, lineWidth: 1)
-    }
+    .cardContainer()
   }
   
   private var appIcon: some View {

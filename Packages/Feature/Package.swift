@@ -20,6 +20,7 @@ let package = Package(
     .target(
       name: "AppCenter",
       dependencies: [
+        "DevicePicker",
         .product(name: "AppBundleClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
@@ -34,6 +35,13 @@ let package = Package(
     ),
     .target(
       name: "DeviceLogging",
+      dependencies: [
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "DevicePicker",
       dependencies: [
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),

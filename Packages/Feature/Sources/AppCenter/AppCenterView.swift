@@ -1,3 +1,4 @@
+import DevicePicker
 import FeatureCore
 import SwiftUI
 
@@ -20,9 +21,9 @@ public struct AppCenterView: View {
         LazyVGrid(columns: columns) {
           ForEach(store.models) { model in
             AppBundleCell(model: model) {
-              send(.deviceTapped(model.appBundle))
+              send(.deviceTapped(model))
             } install: {
-              send(.installTapped(model.appBundle))
+              send(.installTapped(model))
             }
           }
         }
@@ -36,6 +37,11 @@ public struct AppCenterView: View {
       allowedContentTypes: [.applicationBundle]
     ) {
       send(.fileSelected($0))
+    }
+    .sheet(
+      item: $store.scope(state: \.devicePicker, action: \.child.devicePicker)
+    ) {
+      DevicePickerView(store: $0)
     }
   }
 }

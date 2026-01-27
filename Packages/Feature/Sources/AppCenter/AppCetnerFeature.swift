@@ -1,4 +1,5 @@
 import AppBundleClient
+import DevicePicker
 import FeatureCore
 import Foundation
 import Toast
@@ -8,7 +9,8 @@ import UniformTypeIdentifiers
 public struct AppCenterFeature {
   @ObservableState
   public struct State: Equatable {
-    var models: [AppBundleCellModel] = []
+    @Presents var devicePicker: DevicePickerFeature.State?
+    var models: IdentifiedArrayOf<AppBundleCellModel> = .init()
     var isFileImporterPresented = false
     
     public init() {}
@@ -17,8 +19,14 @@ public struct AppCenterFeature {
   @CasePathable
   public enum Action: BindableAction, ViewAction {
     case binding(BindingAction<State>)
+    case child(Child)
     case local(Local)
     case view(View)
+    
+    @CasePathable
+    public enum Child {
+      case devicePicker(PresentationAction<DevicePickerFeature.Action>)
+    }
     
     @CasePathable
     public enum Local {
@@ -27,9 +35,9 @@ public struct AppCenterFeature {
     
     @CasePathable
     public enum View {
-      case deviceTapped(AppBundle)
+      case deviceTapped(AppBundleCellModel)
       case fileSelected(Result<URL, Error>)
-      case installTapped(AppBundle)
+      case installTapped(AppBundleCellModel)
       case uploadTapped
     }
   }
@@ -42,10 +50,36 @@ public struct AppCenterFeature {
       switch action {
       case .binding:
         return .none
+      case let .child(action):
+        return child(&state, action)
       case let .local(action):
         return local(&state, action)
       case let .view(action):
         return view(&state, action)
+      }
+    }
+    .ifLet(\.$devicePicker, action: \.child.devicePicker) {
+      DevicePickerFeature()
+    }
+  }
+  
+  private func child(
+    _ state: inout State,
+    _ action: Action.Child
+  ) -> Effect<Action> {
+    switch action {
+    case let .devicePicker(action):
+      switch action {
+      case let .presented(.delegate(action)):
+        switch action {
+        case let .saveTapped(appBundle, device):
+          state.models[id: appBundle.id]?.device = device
+          state.devicePicker = nil
+          return .none
+        }
+        
+      default:
+        return .none
       }
     }
   }
@@ -56,7 +90,7 @@ public struct AppCenterFeature {
   ) -> Effect<Action> {
     switch action {
     case let .setModels(models):
-      state.models = models
+      state.models = .init(uniqueElements: models)
       return .none
     }
   }
@@ -66,9 +100,11 @@ public struct AppCenterFeature {
     _ action: Action.View
   ) -> Effect<Action> {
     switch action {
-    case let .deviceTapped(appBundle):
-      // TODO: - Show Device List
-      print(appBundle)
+    case let .deviceTapped(model):
+      state.devicePicker = .init(
+        appBundle: model.appBundle,
+        current: model.device
+      )
       return .none
       
     case let .fileSelected(.success(url)):
@@ -84,9 +120,9 @@ public struct AppCenterFeature {
       toastClient.showError(error)
       return .none
       
-    case let .installTapped(appBundle):
+    case let .installTapped(model):
       // TODO: - Install App Bundle
-      print(appBundle)
+      print(model)
       return .none
       
     case .uploadTapped:
