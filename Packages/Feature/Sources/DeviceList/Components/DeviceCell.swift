@@ -41,7 +41,7 @@ struct DeviceCell: View {
   }
   
   private var osView: some View {
-    return Text(device.os)
+    Text(device.os)
       .font(DesignTokens.Typography.caption.font)
       .foregroundStyle(DesignTokens.Colors.mutedText)
       .padding(.vertical, DesignTokens.Spacing.x1)
@@ -53,14 +53,14 @@ struct DeviceCell: View {
   }
   
   private var titleView: some View {
-    return Text(device.name)
+    Text(device.name)
       .font(DesignTokens.Typography.headline.font)
       .foregroundStyle(DesignTokens.Colors.text)
       .frame(maxWidth: .infinity, alignment: .leading)
   }
   
   private var actionButton: some View {
-    return Button(action: action) {
+    Button(action: action) {
       Text(buttonTitle)
         .font(DesignTokens.Typography.button.font)
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AppBundle: Equatable, Sendable {
+public struct AppBundle: Equatable, Identifiable, Sendable {
   /// Bundle ID
   public let id: String
   public let name: String
