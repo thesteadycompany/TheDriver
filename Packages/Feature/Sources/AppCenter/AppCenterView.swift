@@ -3,7 +3,7 @@ import SwiftUI
 
 @ViewAction(for: AppCenterFeature.self)
 public struct AppCenterView: View {
-  public let store: StoreOf<AppCenterFeature>
+  @Bindable public var store: StoreOf<AppCenterFeature>
   
   public init(store: StoreOf<AppCenterFeature>) {
     self.store = store
@@ -20,5 +20,11 @@ public struct AppCenterView: View {
       .padding(.vertical, DesignTokens.Spacing.x8)
     }
     .background(DesignTokens.Colors.background)
+    .fileImporter(
+      isPresented: $store.isFileImporterPresented,
+      allowedContentTypes: [.applicationBundle]
+    ) {
+      send(.fileSelected($0))
+    }
   }
 }
