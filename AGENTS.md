@@ -61,6 +61,12 @@ References:
 Reference:
 - `Packages/Platform/Sources/DesignSystem/DesignTokens.swift`
 
+## Naming & Style Conventions
+- Prefer `...URL`/`...ID` casing in identifiers (e.g., `baseURL`, `someID`) instead of `...Url`/`...Id`.
+- In SwiftUI view computed properties, avoid explicit `return`; use the view expression as the last line.
+- Skip custom `Equatable` implementations when synthesized conformance is sufficient.
+- User-facing UI strings should be written in Korean unless there is a strong reason not to.
+
 ## Lockfiles
 - Authoritative SwiftPM lockfile for app builds:
   - `TheDriver.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`

@@ -130,7 +130,7 @@ Critical Path: Task 1 → Task 3 → Task 4 → Task 5
 
 ## TODOs
 
-- [ ] 1. Add Shared running-app model and key
+- [x] 1. Add Shared running-app model and key
 
   **What to do**:
   - Add a `RunningApp` model with `bundleId`, `displayName`, `deviceId` (Sendable/Equatable).
@@ -164,7 +164,7 @@ Critical Path: Task 1 → Task 3 → Task 4 → Task 5
   - [ ] Shared key defined and accessible to features.
   - [ ] `rg -n "@Shared" Packages` shows only the intended new usages.
 
-- [ ] 2. Extend SimulatorClient logging to support app-only predicate
+- [x] 2. Extend SimulatorClient logging to support app-only predicate
 
   **What to do**:
   - Update `SimulatorClient.startLogging` to accept optional app predicate or bundleId.
@@ -198,7 +198,7 @@ Critical Path: Task 1 → Task 3 → Task 4 → Task 5
   - [ ] LogStreamer uses `--predicate` when provided.
   - [ ] `rg -n "startLogging\(" Packages` shows updated call sites.
 
-- [ ] 3. AppCenter run flow sets Shared running app
+- [x] 3. AppCenter run flow sets Shared running app
 
   **What to do**:
   - Add `@Shared` running app to `AppCenterFeature.State`.
@@ -235,7 +235,7 @@ Critical Path: Task 1 → Task 3 → Task 4 → Task 5
   - [ ] Button label reflects install+run behavior.
   - [ ] Launch failures show toast and do not set Shared.
 
-- [ ] 4. DeviceLogging logging lifecycle using Shared running app
+- [x] 4. DeviceLogging logging lifecycle using Shared running app
 
   **What to do**:
   - Add `@Shared` running app to `DeviceLoggingFeature.State`.
@@ -273,7 +273,7 @@ Critical Path: Task 1 → Task 3 → Task 4 → Task 5
   - [ ] Cancel stops stream and prevents auto-restart until Shared changes.
   - [ ] Log list appends and caps without crashing or growing unbounded.
 
-- [ ] 5. DeviceLogging UI: pinned app + log viewer + cancel
+- [x] 5. DeviceLogging UI: pinned app + log viewer + cancel
 
   **What to do**:
   - Build a simple header showing running app name + device id and logging state.
@@ -327,7 +327,7 @@ xcodebuild -project TheDriver.xcodeproj -scheme TheDriver -configuration Debug b
 ```
 
 ### Final Checklist
-- [ ] Shared running app is set on AppCenter run
-- [ ] DeviceLogging shows running app pinned at top
-- [ ] App-only logs stream and stop on cancel
-- [ ] Build succeeds
+- [x] Shared running app is set on AppCenter run
+- [x] DeviceLogging shows running app pinned at top
+- [x] App-only logs stream and stop on cancel
+- [x] Build succeeds
