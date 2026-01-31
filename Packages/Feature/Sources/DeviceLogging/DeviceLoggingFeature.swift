@@ -1,3 +1,4 @@
+import Entities
 import FeatureCore
 import Foundation
 import SimulatorClient
@@ -6,8 +7,13 @@ import SimulatorClient
 public struct DeviceLoggingFeature {
   @ObservableState
   public struct State: Equatable {
+    @Shared(.runningApp) var runningApp: RunningApp? = nil
     var connectedDevice: SimulatorDevice?
     var devices: [SimulatorDevice] = []
+    var logLines: [String] = []
+    var isLogging = false
+    var isPaused = false
+    var isViewVisible = false
     
     public init() {}
   }
@@ -21,6 +27,7 @@ public struct DeviceLoggingFeature {
     public enum Local {
       case disconnectDevice
       case logReceived(String)
+      case loggingStopped
       case reload
       case setDevices([SimulatorDevice])
     }
@@ -29,6 +36,8 @@ public struct DeviceLoggingFeature {
     public enum View {
       case connectTapped(SimulatorDevice)
       case onAppear
+      case onDisappear
+      case cancelTapped
     }
   }
   
@@ -43,19 +52,41 @@ public struct DeviceLoggingFeature {
         return view(&state, action)
       }
     }
+    .onChange(of: \.runningApp) { oldValue, newValue in
+      Reduce { state, _ in
+        guard oldValue != newValue else { return .none }
+        state.isPaused = false
+        state.logLines = []
+        guard newValue != nil else {
+          state.isLogging = false
+          return stopLoggingEffect()
+        }
+        guard state.isViewVisible else { return .none }
+        state.isLogging = false
+        return .merge(
+          stopLoggingEffect(),
+          startLoggingEffect(&state)
+        )
+      }
+    }
   }
   
   private func local(_ state: inout State, _ action: Action.Local) -> Effect<Action> {
     switch action {
     case .disconnectDevice:
-      @Dependency(SimulatorClient.self) var client
       state.connectedDevice = nil
-      return .run { _ in
-        await client.stopLogging()
-      }
+      state.isLogging = false
+      return stopLoggingEffect()
       
     case let .logReceived(log):
-      print(log)
+      state.logLines.append(log)
+      if state.logLines.count > 500 {
+        state.logLines.removeFirst(state.logLines.count - 500)
+      }
+      return .none
+
+    case .loggingStopped:
+      state.isLogging = false
       return .none
       
     case .reload:
@@ -76,20 +107,61 @@ public struct DeviceLoggingFeature {
   private func view(_ state: inout State, _ action: Action.View) -> Effect<Action> {
     switch action {
     case let .connectTapped(device):
-      @Dependency(SimulatorClient.self) var client
       state.connectedDevice = device
-      return .runWithToast { send in
-        let stream = try await client.startLogging(udid: device.udid)
+      return startLoggingEffect(&state)
+      
+    case .onAppear:
+      state.isViewVisible = true
+      return .merge(
+        .send(.local(.reload)),
+        startLoggingEffect(&state)
+      )
+
+    case .onDisappear:
+      state.isViewVisible = false
+      state.isLogging = false
+      return stopLoggingEffect()
+
+    case .cancelTapped:
+      state.isPaused = true
+      state.isLogging = false
+      return stopLoggingEffect()
+    }
+  }
+
+  private enum CancelID {
+    case logging
+  }
+
+  private func startLoggingEffect(_ state: inout State) -> Effect<Action> {
+    @Dependency(SimulatorClient.self) var client
+    guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
+    state.isLogging = true
+    let predicate = "subsystem == \"\(runningApp.bundleId)\""
+    return .run { send in
+      do {
+        let stream = try await client.startLogging(
+          udid: runningApp.deviceId,
+          predicate: predicate
+        )
         for await log in stream {
           await send(.local(.logReceived(log)))
         }
-        await send(.local(.disconnectDevice))
-      } catch: { _, send in
-        await send(.local(.disconnectDevice))
+        await send(.local(.loggingStopped))
+      } catch {
+        await send(.local(.loggingStopped))
       }
-      
-    case .onAppear:
-      return .send(.local(.reload))
     }
+    .cancellable(id: CancelID.logging, cancelInFlight: true)
+  }
+
+  private func stopLoggingEffect() -> Effect<Action> {
+    @Dependency(SimulatorClient.self) var client
+    return .merge(
+      .cancel(id: CancelID.logging),
+      .run { _ in
+        await client.stopLogging()
+      }
+    )
   }
 }

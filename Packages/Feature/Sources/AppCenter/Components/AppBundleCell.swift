@@ -81,7 +81,7 @@ struct AppBundleCell: View {
   
   private var installButton: some View {
     Button(action: install) {
-      Text("설치하기")
+      Text("설치 및 실행")
         .font(DesignTokens.Typography.button.font)
     }
     .buttonStyle(.borderedProminent)

@@ -1,5 +1,6 @@
 import AppBundleClient
 import DevicePicker
+import Entities
 import FeatureCore
 import Foundation
 import SimulatorClient
@@ -11,6 +12,7 @@ public struct AppCenterFeature {
   @ObservableState
   public struct State: Equatable {
     @Presents var devicePicker: DevicePickerFeature.State?
+    @Shared(.runningApp) var runningApp: RunningApp?
     var models: IdentifiedArrayOf<AppBundleCellModel> = .init()
     var isFileImporterPresented = false
     
@@ -31,6 +33,7 @@ public struct AppCenterFeature {
     
     @CasePathable
     public enum Local {
+      case setRunningApp(RunningApp?)
       case setModels([AppBundleCellModel])
     }
     
@@ -90,6 +93,10 @@ public struct AppCenterFeature {
     _ action: Action.Local
   ) -> Effect<Action> {
     switch action {
+    case let .setRunningApp(runningApp):
+      state.$runningApp.withLock { $0 = runningApp }
+      return .none
+
     case let .setModels(models):
       state.models = .init(uniqueElements: models)
       return .none
@@ -128,10 +135,27 @@ public struct AppCenterFeature {
         toastClient.showWarning("선택된 기기가 없습니다.")
         return .none
       }
-      return .run { send in
+      return .runWithToast { send in
         try await client.installApp(
           udid: device.udid,
           appPath: model.appBundle.url.path()
+        )
+        _ = try await client.launchApp(
+          device.udid,
+          model.appBundle.id,
+          [],
+          .init()
+        )
+        await send(
+          .local(
+            .setRunningApp(
+              .init(
+                bundleId: model.appBundle.id,
+                displayName: model.appBundle.name,
+                deviceId: device.udid
+              )
+            )
+          )
         )
       }
       

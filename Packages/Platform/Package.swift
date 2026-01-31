@@ -15,6 +15,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/pointfreeco/swift-dependencies", exact: "1.10.1"),
     .package(url: "https://github.com/pointfreeco/swift-composable-architecture", exact: "1.23.1"),
+    .package(url: "https://github.com/pointfreeco/swift-sharing", exact: "2.7.4"),
   ],
   targets: [
     .target(
@@ -38,6 +39,7 @@ let package = Package(
         "Entities",
         "Toast",
         .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
+        .product(name: "Sharing", package: "swift-sharing"),
       ]
     ),
     .target(

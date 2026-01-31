@@ -8,7 +8,7 @@ public struct SimulatorClient: Sendable {
   public var shutdownDevice: @Sendable (_ udid: String) throws -> Void
   public var installApp: @Sendable (_ udid: String, _ appPath: String) async throws -> Void
   public var launchApp: @Sendable (_ udid: String, _ bundleId: String, _ arguments: [String], _ options: LaunchOptions) async throws -> String
-  public var startLogging: @Sendable (_ udid: String) async throws -> AsyncStream<String>
+  public var startLogging: @Sendable (_ udid: String, _ predicate: String?) async throws -> AsyncStream<String>
   public var stopLogging: @Sendable () async -> Void
 }
 

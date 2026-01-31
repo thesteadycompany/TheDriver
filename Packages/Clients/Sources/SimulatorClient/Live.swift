@@ -50,8 +50,8 @@ extension SimulatorClient: DependencyKey {
         .launch(udid: udid, bundleId: bundleId, arguments: arguments, options: options)
       )
     },
-    startLogging: { udid in
-      try await LogStreamer.shared.start(udid: udid)
+    startLogging: { udid, predicate in
+      try await LogStreamer.shared.start(udid: udid, predicate: predicate)
     },
     stopLogging: {
       await LogStreamer.shared.stop()
@@ -132,18 +132,20 @@ final actor LogStreamer {
   private var process: Process?
   private var outPipe: Pipe?
   
-  func start(udid: String) throws -> AsyncStream<String> {
+  func start(udid: String, predicate: String?) throws -> AsyncStream<String> {
     stop()
     let path = Runner.shared.path
     let process = Process()
     process.executableURL = .init(fileURLWithPath: path)
-    process.arguments = [
+    var arguments = [
       "simctl", "spawn", udid,
       "log", "stream",
       "--style", "compact"
-      // 필요하면:
-      // "--predicate", "subsystem == \"com.yourcompany.yourapp\""
     ]
+    if let predicate {
+      arguments.append(contentsOf: ["--predicate", predicate])
+    }
+    process.arguments = arguments
     let outPipe = Pipe()
     let errPipe = Pipe()
     process.standardOutput = outPipe
