@@ -1,8 +1,12 @@
 import FeatureCore
+import Foundation
 import SwiftUI
 
 struct AppCenterUploadButton: View {
   let action: () -> Void
+  let onDropAppURL: (URL) -> Void
+  
+  @State private var isDropTargeted = false
   
   var body: some View {
     HStack {
@@ -35,11 +39,29 @@ struct AppCenterUploadButton: View {
     .padding(DesignTokens.Spacing.x6)
     .background {
       RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
-        .fill(DesignTokens.Colors.surface)
+        .fill(
+          isDropTargeted
+            ? DesignTokens.Colors.surfaceAccent.opacity(0.12)
+            : DesignTokens.Colors.surface
+        )
     }
     .overlay {
       RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
-        .stroke(DesignTokens.Colors.border, lineWidth: 1)
+        .stroke(
+          isDropTargeted ? DesignTokens.Colors.accent : DesignTokens.Colors.border,
+          lineWidth: isDropTargeted ? 2 : 1
+        )
+    }
+    .accessibilityIdentifier("appcenter.upload.dropzone")
+    .accessibilityValue(isDropTargeted ? "targeted" : "idle")
+    .dropDestination(for: URL.self) { items, _ in
+      guard let appURL = items.first(where: { $0.pathExtension.lowercased() == "app" }) else {
+        return false
+      }
+      onDropAppURL(appURL)
+      return true
+    } isTargeted: { isTargeted in
+      isDropTargeted = isTargeted
     }
   }
 }

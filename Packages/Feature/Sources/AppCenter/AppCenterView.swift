@@ -16,6 +16,8 @@ public struct AppCenterView: View {
       VStack(spacing: DesignTokens.Spacing.x8) {
         AppCenterUploadButton {
           send(.uploadTapped)
+        } onDropAppURL: { url in
+          send(.fileSelected(.success(url)))
         }
         
         LazyVGrid(columns: columns) {

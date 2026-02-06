@@ -117,10 +117,18 @@ public struct AppCenterFeature {
       
     case let .fileSelected(.success(url)):
       @Dependency(AppBundleClient.self) var client
+      @Dependency(ToastClient.self) var toastClient
       return .runWithToast { send in
-        let appBundle = try client.appBundle(url: url)
-        // TODO: - Save App Bundle
-        await send(.local(.setModels([.init(appBundle: appBundle)])))
+        do {
+          let appBundle = try client.appBundle(url: url)
+          // TODO: - Save App Bundle
+          await send(.local(.setModels([.init(appBundle: appBundle)])))
+        } catch let error as AppBundleError where error == .notSupportedFormat {
+          toastClient.showWarning("지원하지 않는 파일입니다. (.app)")
+          return
+        } catch {
+          throw error
+        }
       }
       
     case let .fileSelected(.failure(error)):

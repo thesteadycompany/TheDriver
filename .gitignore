@@ -38,6 +38,8 @@ playground.xcworkspace
 # Packages/
 # Package.pins
 # Package.resolved
+# Ignore individual Package.resolved files - authoritative one is in Xcode project
+Packages/*/Package.resolved
 .build/
 
 # CocoaPods
