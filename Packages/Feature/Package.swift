@@ -19,6 +19,13 @@ let package = Package(
   ],
   targets: [
     .target(
+      name: "AndroidDevicePicker",
+      dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
+    .target(
       name: "AppCenter",
       dependencies: [
         "AndroidDevicePicker",
@@ -27,6 +34,43 @@ let package = Package(
         .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "DeviceList",
+      dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "DeviceLogging",
+      dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "DevicePicker",
+      dependencies: [
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "Onboarding",
+      dependencies: [
+        .product(name: "DeveloperToolsClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
+    .testTarget(
+      name: "AndroidDevicePickerTests",
+      dependencies: [
+        "AndroidDevicePicker",
+        .product(name: "FeatureCore", package: "Platform"),
       ]
     ),
     .testTarget(
@@ -58,46 +102,16 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "DevicePickerTests",
+      dependencies: [
+        "DevicePicker",
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
+    .testTarget(
       name: "OnboardingTests",
       dependencies: [
         "Onboarding",
-        .product(name: "DeveloperToolsClient", package: "Clients"),
-        .product(name: "FeatureCore", package: "Platform"),
-      ]
-    ),
-    .target(
-      name: "AndroidDevicePicker",
-      dependencies: [
-        .product(name: "EmulatorClient", package: "Clients"),
-        .product(name: "FeatureCore", package: "Platform"),
-      ]
-    ),
-    .target(
-      name: "DeviceList",
-      dependencies: [
-        .product(name: "EmulatorClient", package: "Clients"),
-        .product(name: "FeatureCore", package: "Platform"),
-        .product(name: "SimulatorClient", package: "Clients"),
-      ]
-    ),
-    .target(
-      name: "DeviceLogging",
-      dependencies: [
-        .product(name: "EmulatorClient", package: "Clients"),
-        .product(name: "FeatureCore", package: "Platform"),
-        .product(name: "SimulatorClient", package: "Clients"),
-      ]
-    ),
-    .target(
-      name: "DevicePicker",
-      dependencies: [
-        .product(name: "FeatureCore", package: "Platform"),
-        .product(name: "SimulatorClient", package: "Clients"),
-      ]
-    ),
-    .target(
-      name: "Onboarding",
-      dependencies: [
         .product(name: "DeveloperToolsClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
       ]

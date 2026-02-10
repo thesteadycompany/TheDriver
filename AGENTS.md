@@ -17,6 +17,12 @@ If you need to add a new feature/module, prefer adding it as a SwiftPM target un
 - Build (CLI): `xcodebuild -project TheDriver.xcodeproj -scheme TheDriver -configuration Debug build`
 - The app scheme is `TheDriver`.
 
+## SwiftPM Manifest Ordering
+- In each `Packages/*/Package.swift`, keep `targets` ordered as:
+  - all `.target(...)` entries in alphabetical order
+  - then all `.testTarget(...)` entries in alphabetical order
+- When adding a new feature target, add or update its matching test target in the same change.
+
 ## Architecture (TCA)
 
 ### Feature Template (Canonical)
@@ -97,6 +103,7 @@ Reference:
 ## Downlinks (Scoped Instructions)
 - App entry & Xcode rules: `Application/AGENTS.md`
 - App package rules: `Packages/App/AGENTS.md`
+- Feature package rules: `Packages/Feature/AGENTS.md`
 - Platform package rules: `Packages/Platform/AGENTS.md`
 - Simulator package rules: `Packages/Simulator/AGENTS.md`
 

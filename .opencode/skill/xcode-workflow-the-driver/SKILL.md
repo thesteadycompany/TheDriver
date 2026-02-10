@@ -20,6 +20,12 @@ description: How to build/verify TheDriver and avoid generated/user-local file p
 - App features and shared modules live under `Packages/`.
 - Prefer adding new code as SwiftPM targets under `Packages/*`.
 
+## Package.swift Target Ordering
+- In `Packages/*/Package.swift`, keep `targets` grouped and sorted:
+  - `.target(...)` entries first, alphabetically.
+  - `.testTarget(...)` entries next, alphabetically.
+- When adding a new feature or client target, add/update the corresponding test target in the same change where possible.
+
 ## Do Not Touch / Do Not Commit
 - Generated:
   - `Packages/**/.build/**`
