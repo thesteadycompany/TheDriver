@@ -77,7 +77,7 @@ Reference:
 
 ## Naming & Style Conventions
 - Prefer `...URL`/`...ID` casing in identifiers (e.g., `baseURL`, `someID`) instead of `...Url`/`...Id`.
-- In SwiftUI view computed properties, avoid explicit `return`; use the view expression as the last line.
+- In SwiftUI view builders (computed properties and `-> some View` helper functions), avoid explicit `return`; use the view expression as the last line.
 - Skip custom `Equatable` implementations when synthesized conformance is sufficient.
 - User-facing UI strings should be written in Korean unless there is a strong reason not to.
 - Reducer helper function names should be concise and domain-oriented (`onboarding`, `deviceList`) rather than redundant suffix forms like `onboardingChild`.

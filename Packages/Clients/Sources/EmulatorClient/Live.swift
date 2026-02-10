@@ -5,16 +5,42 @@ import Foundation
 extension EmulatorClient: DependencyKey {
   public static let liveValue = EmulatorClient(
     requestDevices: {
-      let output = try EmulatorRunner.shared.run(.listDevices)
+      _ = try EmulatorRunner.shared.run(.startADBServer)
+      let adbOutput = try EmulatorRunner.shared.run(.listDevices)
       let parser = ADBDevicesParser()
-      let devices = parser.parse(output)
+      let connectedDevices = parser
+        .parse(adbOutput)
+        .filter { $0.serial.hasPrefix("emulator-") }
+      let namedDevices = resolveAVDNamesIfNeeded(for: connectedDevices)
 
-      let booted = devices.filter(\.state.isBooted)
-      let shutdown = devices.filter { $0.state.isBooted == false }
+      let booted = namedDevices.filter(\.state.isBooted)
+      let adbShutdown = namedDevices.filter { $0.state.isBooted == false }
+      let avdOutput = try? EmulatorRunner.shared.run(.listAVDs)
+      let avdNames = AVDListParser().parse(avdOutput ?? "")
+      let shutdownByAVD = avdNames
+        .filter { name in
+          booted.contains(where: { $0.name == name }) == false
+        }
+        .map { name in
+          EmulatorDevice(
+            serial: "avd:\(name)",
+            name: name,
+            state: .shutdown
+          )
+        }
+      let shutdown = mergeShutdownDevices(adbShutdown, shutdownByAVD)
 
       return .init(
         bootedDevices: booted,
         shutdownDevices: shutdown
+      )
+    },
+    bootDevice: { avdName in
+      try EmulatorRunner.shared.runDetached(.bootDevice(avdName: avdName))
+    },
+    shutdownDevice: { serial in
+      _ = try await EmulatorRunner.shared.runAsync(
+        .shutdownDevice(serial: serial)
       )
     },
     installAPK: { serial, apkPath in
@@ -30,15 +56,41 @@ extension EmulatorClient: DependencyKey {
   )
 }
 
-struct EmulatorRunner: Sendable {
-  let path = "/usr/bin/env"
+private func resolveAVDNamesIfNeeded(
+  for devices: [EmulatorDevice]
+) -> [EmulatorDevice] {
+  devices.map { device in
+    guard device.state.isBooted else { return device }
+    guard device.serial.hasPrefix("emulator-") else { return device }
+    let avdName = try? EmulatorRunner.shared.run(.runningAVDName(serial: device.serial))
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let avdName, avdName.isEmpty == false else { return device }
+    return .init(
+      serial: device.serial,
+      name: avdName,
+      state: device.state,
+      apiLevel: device.apiLevel
+    )
+  }
+}
 
+private func mergeShutdownDevices(
+  _ first: [EmulatorDevice],
+  _ second: [EmulatorDevice]
+) -> [EmulatorDevice] {
+  var seenNames = Set<String>()
+  return (first + second).filter { device in
+    seenNames.insert(device.name).inserted
+  }
+}
+
+struct EmulatorRunner: Sendable {
   static let shared = EmulatorRunner()
 
   @discardableResult
   func run(_ command: EmulatorCommand) throws -> String {
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: path)
+    process.executableURL = try resolveExecutableURL(for: command.executableName)
     process.arguments = command.arguments
 
     let outPipe = Pipe()
@@ -49,7 +101,7 @@ struct EmulatorRunner: Sendable {
     do {
       try process.run()
     } catch {
-      throw EmulatorError.notFound(path: path)
+      throw EmulatorError.notFound(path: command.executableName)
     }
 
     process.waitUntilExit()
@@ -60,6 +112,9 @@ struct EmulatorRunner: Sendable {
     let stdError = String(data: errorData, encoding: .utf8) ?? ""
 
     if process.terminationStatus != 0 {
+      if stdError.localizedCaseInsensitiveContains("No such file or directory") {
+        throw EmulatorError.notFound(path: command.executableName)
+      }
       throw EmulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
     }
 
@@ -69,7 +124,7 @@ struct EmulatorRunner: Sendable {
   @discardableResult
   func runAsync(_ command: EmulatorCommand) async throws -> String {
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: path)
+    process.executableURL = try resolveExecutableURL(for: command.executableName)
     process.arguments = command.arguments
 
     let outPipe = Pipe()
@@ -85,6 +140,10 @@ struct EmulatorRunner: Sendable {
         let stdError = String(data: errorData, encoding: .utf8) ?? ""
 
         if process.terminationStatus != 0 {
+          if stdError.localizedCaseInsensitiveContains("No such file or directory") {
+            continuation.resume(throwing: EmulatorError.notFound(path: command.executableName))
+            return
+          }
           continuation.resume(
             throwing: EmulatorError.nonZeroExit(code: process.terminationStatus, description: stdError)
           )
@@ -96,8 +155,62 @@ struct EmulatorRunner: Sendable {
       do {
         try process.run()
       } catch {
-        continuation.resume(throwing: EmulatorError.notFound(path: path))
+        continuation.resume(throwing: EmulatorError.notFound(path: command.executableName))
       }
     }
+  }
+
+  func runDetached(_ command: EmulatorCommand) throws {
+    let process = Process()
+    process.executableURL = try resolveExecutableURL(for: command.executableName)
+    process.arguments = command.arguments
+    process.standardOutput = Pipe()
+    process.standardError = Pipe()
+    do {
+      try process.run()
+    } catch {
+      throw EmulatorError.notFound(path: command.executableName)
+    }
+  }
+
+  private func resolveExecutableURL(for executableName: String) throws -> URL {
+    let fileManager = FileManager.default
+    for path in executableSearchPaths(executableName: executableName) {
+      if fileManager.isExecutableFile(atPath: path) {
+        return URL(fileURLWithPath: path)
+      }
+    }
+    throw EmulatorError.notFound(path: executableName)
+  }
+
+  private func executableSearchPaths(executableName: String) -> [String] {
+    var paths: [String] = []
+    let environment = ProcessInfo.processInfo.environment
+    let sdkRoots = [
+      environment["ANDROID_SDK_ROOT"],
+      environment["ANDROID_HOME"],
+      NSHomeDirectory().appending("/Library/Android/sdk"),
+    ]
+    .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+    .filter { $0.isEmpty == false }
+
+    for sdkRoot in sdkRoots {
+      switch executableName {
+      case "adb":
+        paths.append((sdkRoot as NSString).appendingPathComponent("platform-tools/adb"))
+      case "emulator":
+        paths.append((sdkRoot as NSString).appendingPathComponent("emulator/emulator"))
+      default:
+        break
+      }
+    }
+
+    let pathVariable = environment["PATH"] ?? ""
+    for directory in pathVariable.split(separator: ":").map(String.init) {
+      paths.append((directory as NSString).appendingPathComponent(executableName))
+    }
+
+    var seen = Set<String>()
+    return paths.filter { seen.insert($0).inserted }
   }
 }

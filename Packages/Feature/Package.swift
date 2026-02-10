@@ -57,6 +57,7 @@ let package = Package(
     .target(
       name: "DeviceList",
       dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
       ]

@@ -35,4 +35,5 @@ Reference:
 ## Do / Don't
 - Do: keep APIs `Sendable` where appropriate (client layer).
 - Do: use `throws` rather than `Result` unless an API requires otherwise.
+- Do: in SwiftUI view builders (computed properties and `-> some View` helpers), omit explicit `return` and make the view expression the final line.
 - Don't: add custom formatting/lint rules in-repo unless explicitly requested.
