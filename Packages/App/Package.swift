@@ -19,6 +19,7 @@ let package = Package(
       name: "App",
       dependencies: [
         "MainTab",
+        .product(name: "Onboarding", package: "Feature"),
       ]
     ),
     .target(
@@ -29,7 +30,14 @@ let package = Package(
         .product(name: "DeviceLogging", package: "Feature"),
         .product(name: "FeatureCore", package: "Platform"),
       ]
-    )
+    ),
+    .testTarget(
+      name: "AppTests",
+      dependencies: [
+        "App",
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
   ]
 )
 

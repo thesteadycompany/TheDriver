@@ -11,6 +11,7 @@ let package = Package(
     .singleTargetLibrary("AppCenter"),
     .singleTargetLibrary("DeviceList"),
     .singleTargetLibrary("DeviceLogging"),
+    .singleTargetLibrary("Onboarding"),
   ],
   dependencies: [
     .package(path: "../Clients"),
@@ -42,6 +43,14 @@ let package = Package(
         .product(name: "SimulatorClient", package: "Clients"),
       ]
     ),
+    .testTarget(
+      name: "OnboardingTests",
+      dependencies: [
+        "Onboarding",
+        .product(name: "DeveloperToolsClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
     .target(
       name: "DeviceList",
       dependencies: [
@@ -61,6 +70,13 @@ let package = Package(
       dependencies: [
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .target(
+      name: "Onboarding",
+      dependencies: [
+        .product(name: "DeveloperToolsClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
       ]
     ),
   ]

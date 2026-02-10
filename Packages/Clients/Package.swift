@@ -9,6 +9,7 @@ let package = Package(
   ],
   products: [
     .singleTargetLibrary("AppBundleClient"),
+    .singleTargetLibrary("DeveloperToolsClient"),
     .singleTargetLibrary("SimulatorClient"),
   ],
   dependencies: [
@@ -17,6 +18,12 @@ let package = Package(
   targets: [
     .target(
       name: "AppBundleClient",
+      dependencies: [
+        .product(name: "ClientCore", package: "Platform")
+      ]
+    ),
+    .target(
+      name: "DeveloperToolsClient",
       dependencies: [
         .product(name: "ClientCore", package: "Platform")
       ]
@@ -35,4 +42,3 @@ extension Product {
     library(name: name, targets: [name])
   }
 }
-

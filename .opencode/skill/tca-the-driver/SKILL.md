@@ -26,9 +26,16 @@ References:
 ## View Actions
 - Prefer `Action.View` for user events.
 - Keep reducer logic split into `private func view(...)` / `private func child(...)` when it improves readability.
+- For child-to-parent communication, prefer `Action.Delegate` from child features; parent reducers should not depend on child `Action.Local` internals.
+- Keep `Reduce` focused on action routing; move handling logic into helper functions (`child`, `view`, `binding`).
+- Keep helper function names concise and domain-first (`onboarding`) and avoid redundant suffix naming like `onboardingChild`.
+- Prefer exhaustive switches and avoid `default` for known action enums.
 
 Reference:
 - `Packages/App/Sources/MainTab/MainTabFeature.swift`
+
+## Composition Notes
+- For onboarding/permission/setup flows, keep root content mounted and layer sheet/overlay UI when possible instead of replacing the root subtree.
 
 ## Dependencies
 - Use `@Dependency` inside reducer functions/cases.

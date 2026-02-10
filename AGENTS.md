@@ -37,6 +37,20 @@ References:
 Reference:
 - `Packages/App/Sources/MainTab/MainTabFeature.swift`
 
+### Parent-Child Event Boundary
+- Parent features should not directly pattern-match child `Action.Local`/`Action.View` internals.
+- Child-to-parent events should be surfaced via `Action.Delegate` and handled in the parent.
+- In parent reducers, route top-level cases to helper functions (e.g. `child`, `view`) instead of handling business logic directly inside `Reduce`.
+- Prefer exhaustive `switch` branches and avoid `default` when cases are known.
+
+Reference:
+- `Packages/Feature/Sources/Onboarding/OnboardingFeature.swift`
+- `Packages/App/Sources/App/AppFeature.swift`
+
+### Overlay Composition
+- Keep root content (e.g. tabs) mounted when presenting onboarding/permissions/environment flows.
+- Prefer sheet/overlay presentation over replacing the root view tree when feasible.
+
 ### Imports / Layering
 - Feature modules should import `FeatureCore` instead of importing `ComposableArchitecture`, `Entities`, or `DesignSystem` directly.
 
@@ -66,6 +80,7 @@ Reference:
 - In SwiftUI view computed properties, avoid explicit `return`; use the view expression as the last line.
 - Skip custom `Equatable` implementations when synthesized conformance is sufficient.
 - User-facing UI strings should be written in Korean unless there is a strong reason not to.
+- Reducer helper function names should be concise and domain-oriented (`onboarding`, `deviceList`) rather than redundant suffix forms like `onboardingChild`.
 
 ## Lockfiles
 - Authoritative SwiftPM lockfile for app builds:
