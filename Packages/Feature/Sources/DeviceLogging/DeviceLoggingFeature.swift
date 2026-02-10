@@ -11,9 +11,17 @@ public struct DeviceLoggingFeature {
     var connectedDevice: SimulatorDevice?
     var devices: [SimulatorDevice] = []
     var logLines: [String] = []
+    var searchQuery = ""
     var isLogging = false
     var isPaused = false
     var isViewVisible = false
+    
+    var filteredLogLines: [String] {
+      guard searchQuery.isEmpty == false else { return logLines }
+      return logLines.filter {
+        $0.localizedCaseInsensitiveContains(searchQuery)
+      }
+    }
     
     public init() {}
   }
@@ -34,11 +42,17 @@ public struct DeviceLoggingFeature {
     
     @CasePathable
     public enum View {
+      case clearTapped
       case connectTapped(SimulatorDevice)
       case onAppear
       case onDisappear
       case cancelTapped
+      case searchQueryChanged(String)
     }
+  }
+  
+  private enum CancelID {
+    case logging
   }
   
   public init() {}
@@ -84,7 +98,7 @@ public struct DeviceLoggingFeature {
         state.logLines.removeFirst(state.logLines.count - 500)
       }
       return .none
-
+      
     case .loggingStopped:
       state.isLogging = false
       return .none
@@ -106,6 +120,10 @@ public struct DeviceLoggingFeature {
   
   private func view(_ state: inout State, _ action: Action.View) -> Effect<Action> {
     switch action {
+    case .clearTapped:
+      state.logLines = []
+      return .none
+      
     case let .connectTapped(device):
       state.connectedDevice = device
       return startLoggingEffect(&state)
@@ -116,23 +134,23 @@ public struct DeviceLoggingFeature {
         .send(.local(.reload)),
         startLoggingEffect(&state)
       )
-
+      
     case .onDisappear:
       state.isViewVisible = false
       state.isLogging = false
       return stopLoggingEffect()
-
+      
     case .cancelTapped:
       state.isPaused = true
       state.isLogging = false
       return stopLoggingEffect()
+      
+    case let .searchQueryChanged(query):
+      state.searchQuery = query
+      return .none
     }
   }
-
-  private enum CancelID {
-    case logging
-  }
-
+  
   private func startLoggingEffect(_ state: inout State) -> Effect<Action> {
     @Dependency(SimulatorClient.self) var client
     guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
@@ -155,7 +173,7 @@ public struct DeviceLoggingFeature {
     }
     .cancellable(id: CancelID.logging, cancelInFlight: true)
   }
-
+  
   private func stopLoggingEffect() -> Effect<Action> {
     @Dependency(SimulatorClient.self) var client
     return .merge(
@@ -165,19 +183,19 @@ public struct DeviceLoggingFeature {
       }
     )
   }
-
+  
   private func makeLogPredicate(runningApp: RunningApp) -> String {
     let bundleID = escapeLogPredicateValue(runningApp.bundleId)
     let processName = escapeLogPredicateValue(runningApp.processName)
     return "subsystem == \"\(bundleID)\" OR process == \"\(processName)\""
   }
-
+  
   private func escapeLogPredicateValue(_ value: String) -> String {
     value
       .replacingOccurrences(of: "\\", with: "\\\\")
       .replacingOccurrences(of: "\"", with: "\\\"")
   }
-
+  
   private static func errorDescription(_ error: any Error) -> String {
     guard let error = error as? SimulatorError else {
       return error.localizedDescription

@@ -115,6 +115,66 @@ final class DeviceLoggingFeatureTests: XCTestCase {
     XCTAssertEqual(store.state.logLines.last, "로그 500")
   }
 
+  func testFilteredLogLinesReturnsAllWhenQueryIsEmpty() {
+    var state = DeviceLoggingFeature.State()
+    state.logLines = ["Network connected", "Request started"]
+    state.searchQuery = ""
+
+    XCTAssertEqual(state.filteredLogLines, ["Network connected", "Request started"])
+  }
+
+  func testSearchQueryFiltersLogsCaseInsensitive() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["Network connected", "request started", "DB saved"]
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    }
+
+    await store.send(.view(.searchQueryChanged("REQUEST"))) {
+      $0.searchQuery = "REQUEST"
+    }
+
+    XCTAssertEqual(store.state.filteredLogLines, ["request started"])
+  }
+
+  func testClearTappedClearsAllLogsAndKeepsStreamingState() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["A", "B"]
+    initialState.searchQuery = "A"
+    initialState.isLogging = true
+    initialState.isPaused = false
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    }
+
+    await store.send(.view(.clearTapped)) {
+      $0.logLines = []
+    }
+
+    XCTAssertEqual(store.state.filteredLogLines, [])
+    XCTAssertTrue(store.state.isLogging)
+    XCTAssertFalse(store.state.isPaused)
+    XCTAssertEqual(store.state.searchQuery, "A")
+  }
+
+  func testFilteredLogLinesReflectsNewIncomingLogsWithActiveQuery() async {
+    let store = TestStore(initialState: .init()) {
+      DeviceLoggingFeature().body
+    }
+
+    await store.send(.view(.searchQueryChanged("error"))) {
+      $0.searchQuery = "error"
+    }
+    await store.send(.local(.logReceived("network started"))) {
+      $0.logLines = ["network started"]
+    }
+    await store.send(.local(.logReceived("ERROR timeout"))) {
+      $0.logLines = ["network started", "ERROR timeout"]
+    }
+
+    XCTAssertEqual(store.state.filteredLogLines, ["ERROR timeout"])
+  }
+
   private func makeStateWithRunningApp() -> DeviceLoggingFeature.State {
     var state = DeviceLoggingFeature.State()
     state.$runningApp.withLock {

@@ -74,8 +74,26 @@ public struct DeviceLoggingView: View {
             .disabled(store.isPaused)
             .opacity(store.isPaused ? 0.5 : 1)
 
+            Button {
+              send(.clearTapped)
+            } label: {
+              Label("지우기", systemImage: "trash")
+                .font(DesignTokens.Typography.button.font)
+            }
+            .buttonStyle(.bordered)
+            .disabled(store.logLines.isEmpty)
+
             Spacer(minLength: .zero)
           }
+
+          TextField(
+            "로그 검색",
+            text: Binding(
+              get: { store.searchQuery },
+              set: { send(.searchQueryChanged($0)) }
+            )
+          )
+          .textFieldStyle(.roundedBorder)
         }
         .cardContainer()
       }
@@ -117,9 +135,15 @@ public struct DeviceLoggingView: View {
               .foregroundStyle(DesignTokens.Colors.mutedText)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.vertical, DesignTokens.Spacing.x2)
+          } else if store.filteredLogLines.isEmpty {
+            Text("검색 결과가 없습니다.")
+              .font(DesignTokens.Typography.body.font)
+              .foregroundStyle(DesignTokens.Colors.mutedText)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.vertical, DesignTokens.Spacing.x2)
           }
 
-          ForEach(Array(store.logLines.enumerated()), id: \.offset) { index, line in
+          ForEach(Array(store.filteredLogLines.enumerated()), id: \.offset) { index, line in
             Text(line)
               .font(DesignTokens.Typography.caption.font.monospaced())
               .foregroundStyle(DesignTokens.Colors.text)
@@ -136,7 +160,7 @@ public struct DeviceLoggingView: View {
             .frame(height: 0)
             .id(logScrollObserverID)
             .onAppear {
-              scrollToBottom(proxy, animated: store.logLines.isEmpty == false)
+              scrollToBottom(proxy, animated: store.filteredLogLines.isEmpty == false)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -156,9 +180,9 @@ public struct DeviceLoggingView: View {
 
   private var logScrollObserverID: LogScrollObserverID {
     LogScrollObserverID(
-      count: store.logLines.count,
-      first: store.logLines.first,
-      last: store.logLines.last
+      count: store.filteredLogLines.count,
+      first: store.filteredLogLines.first,
+      last: store.filteredLogLines.last
     )
   }
 
