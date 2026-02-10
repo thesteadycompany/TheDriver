@@ -52,6 +52,25 @@ extension EmulatorClient: DependencyKey {
       _ = try await EmulatorRunner.shared.runAsync(
         .launchApp(serial: serial, packageName: packageName)
       )
+    },
+    startLogging: { serial, packageName in
+      _ = try EmulatorRunner.shared.run(.startADBServer)
+      let pidOutput = try EmulatorRunner.shared.run(
+        .resolvePID(serial: serial, packageName: packageName)
+      )
+      guard let pid = parsePrimaryPID(pidOutput) else {
+        throw EmulatorError.nonZeroExit(
+          code: 1,
+          description: "실행 중인 앱 PID를 찾을 수 없습니다: \(packageName)"
+        )
+      }
+      return try await LogcatStreamer.shared.start(
+        serial: serial,
+        pid: pid
+      )
+    },
+    stopLogging: {
+      await LogcatStreamer.shared.stop()
     }
   )
 }
@@ -82,6 +101,13 @@ private func mergeShutdownDevices(
   return (first + second).filter { device in
     seenNames.insert(device.name).inserted
   }
+}
+
+private func parsePrimaryPID(_ output: String) -> String? {
+  output
+    .split(whereSeparator: \.isWhitespace)
+    .map(String.init)
+    .first { $0.isEmpty == false }
 }
 
 struct EmulatorRunner: Sendable {
@@ -173,7 +199,7 @@ struct EmulatorRunner: Sendable {
     }
   }
 
-  private func resolveExecutableURL(for executableName: String) throws -> URL {
+  fileprivate func resolveExecutableURL(for executableName: String) throws -> URL {
     let fileManager = FileManager.default
     for path in executableSearchPaths(executableName: executableName) {
       if fileManager.isExecutableFile(atPath: path) {
@@ -212,5 +238,111 @@ struct EmulatorRunner: Sendable {
 
     var seen = Set<String>()
     return paths.filter { seen.insert($0).inserted }
+  }
+}
+
+@globalActor
+final actor LogcatStreamer {
+  static let shared = LogcatStreamer()
+
+  private var process: Process?
+  private var outPipe: Pipe?
+  private var errPipe: Pipe?
+
+  func start(
+    serial: String,
+    pid: String
+  ) throws -> AsyncThrowingStream<String, Error> {
+    stop()
+    let executableURL = try EmulatorRunner.shared.resolveExecutableURL(for: "adb")
+    let process = Process()
+    process.executableURL = executableURL
+    process.arguments = EmulatorCommand.streamLogs(serial: serial, pid: pid).arguments
+    let outPipe = Pipe()
+    let errPipe = Pipe()
+    process.standardOutput = outPipe
+    process.standardError = errPipe
+
+    let stream = AsyncThrowingStream<String, Error> { continuation in
+      let stdError = LockedString()
+
+      outPipe.fileHandleForReading.readabilityHandler = { handle in
+        let data = handle.availableData
+        if data.isEmpty { return }
+        let chunk = String(data: data, encoding: .utf8) ?? ""
+        chunk
+          .split(separator: "\n", omittingEmptySubsequences: true)
+          .forEach { continuation.yield(String($0)) }
+      }
+
+      errPipe.fileHandleForReading.readabilityHandler = { handle in
+        let data = handle.availableData
+        if data.isEmpty { return }
+        stdError.append(String(data: data, encoding: .utf8) ?? "")
+      }
+
+      process.terminationHandler = { process in
+        outPipe.fileHandleForReading.readabilityHandler = nil
+        errPipe.fileHandleForReading.readabilityHandler = nil
+
+        if process.terminationStatus == 0 {
+          continuation.finish()
+          return
+        }
+
+        continuation.finish(
+          throwing: EmulatorError.nonZeroExit(
+            code: process.terminationStatus,
+            description: stdError.trimmedValue()
+          )
+        )
+      }
+
+      continuation.onTermination = { _ in
+        outPipe.fileHandleForReading.readabilityHandler = nil
+        errPipe.fileHandleForReading.readabilityHandler = nil
+        process.terminationHandler = nil
+        process.terminate()
+      }
+
+      do {
+        try process.run()
+      } catch {
+        continuation.finish(throwing: EmulatorError.notFound(path: "adb"))
+      }
+    }
+
+    self.process = process
+    self.outPipe = outPipe
+    self.errPipe = errPipe
+    return stream
+  }
+
+  func stop() {
+    outPipe?.fileHandleForReading.readabilityHandler = nil
+    errPipe?.fileHandleForReading.readabilityHandler = nil
+    process?.terminationHandler = nil
+    process?.terminate()
+    process = nil
+    outPipe = nil
+    errPipe = nil
+  }
+}
+
+private final class LockedString: @unchecked Sendable {
+  private let lock = NSLock()
+  private var value = ""
+
+  func append(_ text: String) {
+    lock.lock()
+    value += text
+    lock.unlock()
+  }
+
+  func trimmedValue() -> String {
+    lock.lock()
+    let copied = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    lock.unlock()
+    return copied
   }
 }

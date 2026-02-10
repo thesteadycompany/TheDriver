@@ -56,5 +56,17 @@ final class EmulatorClientTests: XCTestCase {
       EmulatorCommand.shutdownDevice(serial: "emulator-5554").arguments,
       ["-s", "emulator-5554", "emu", "kill"]
     )
+
+    XCTAssertEqual(EmulatorCommand.resolvePID(serial: "emulator-5554", packageName: "com.example.app").executableName, "adb")
+    XCTAssertEqual(
+      EmulatorCommand.resolvePID(serial: "emulator-5554", packageName: "com.example.app").arguments,
+      ["-s", "emulator-5554", "shell", "pidof", "com.example.app"]
+    )
+
+    XCTAssertEqual(EmulatorCommand.streamLogs(serial: "emulator-5554", pid: "12345").executableName, "adb")
+    XCTAssertEqual(
+      EmulatorCommand.streamLogs(serial: "emulator-5554", pid: "12345").arguments,
+      ["-s", "emulator-5554", "logcat", "--pid=12345", "-v", "threadtime"]
+    )
   }
 }

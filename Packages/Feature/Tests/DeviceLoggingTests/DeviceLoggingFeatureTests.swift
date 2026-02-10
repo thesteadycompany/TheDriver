@@ -1,3 +1,4 @@
+import EmulatorClient
 import FeatureCore
 import SimulatorClient
 import XCTest
@@ -101,6 +102,97 @@ final class DeviceLoggingFeatureTests: XCTestCase {
     }
   }
 
+  func testAndroidOnAppearStartsLogging() async {
+    let recorder = AndroidLoggingRecorder()
+    let store = TestStore(initialState: makeStateWithAndroidRunningApp()) {
+      DeviceLoggingFeature().body
+    } withDependencies: {
+      $0[SimulatorClient.self].requestDevices = {
+        .init(bootedDevices: [], shutdownGroups: [])
+      }
+      $0[EmulatorClient.self].startLogging = { serial, packageName in
+        await recorder.recordStart(serial: serial, packageName: packageName)
+        return AsyncThrowingStream { continuation in
+          continuation.yield("Android 첫 로그")
+          continuation.finish()
+        }
+      }
+      $0[EmulatorClient.self].stopLogging = {
+        await recorder.recordStop()
+      }
+    }
+
+    await store.send(.view(.onAppear)) {
+      $0.isViewVisible = true
+      $0.isLogging = true
+    }
+
+    await store.receive(.local(.setDevices([]))) {
+      $0.devices = []
+    }
+    await store.receive(.local(.logReceived("Android 첫 로그"))) {
+      $0.logLines = ["Android 첫 로그"]
+    }
+    await store.receive(.local(.loggingStopped)) {
+      $0.isLogging = false
+    }
+
+    let start = await recorder.lastStart
+    XCTAssertEqual(start?.serial, "emulator-5554")
+    XCTAssertEqual(start?.packageName, "com.example.android")
+  }
+
+  func testAndroidConnectTappedShowsErrorLineWhenStreamFails() async {
+    let store = TestStore(initialState: makeStateWithAndroidRunningApp()) {
+      DeviceLoggingFeature().body
+    } withDependencies: {
+      $0[EmulatorClient.self].startLogging = { _, _ in
+        AsyncThrowingStream { continuation in
+          continuation.finish(
+            throwing: EmulatorError.nonZeroExit(code: 1, description: "pid를 찾을 수 없습니다")
+          )
+        }
+      }
+    }
+
+    await store.send(.view(.connectTapped(.sampleBooted))) {
+      $0.connectedDevice = .sampleBooted
+      $0.isLogging = true
+    }
+
+    await store.receive(.local(.logReceived("[오류] 로그 스트림 실패: 에뮬레이터 명령이 실패했습니다. 종료 코드: 1, pid를 찾을 수 없습니다"))) {
+      $0.logLines = ["[오류] 로그 스트림 실패: 에뮬레이터 명령이 실패했습니다. 종료 코드: 1, pid를 찾을 수 없습니다"]
+    }
+    await store.receive(.local(.loggingStopped)) {
+      $0.isLogging = false
+    }
+  }
+
+  func testAndroidOnDisappearStopsLogging() async {
+    let recorder = AndroidLoggingRecorder()
+    let store = TestStore(initialState: makeStateWithAndroidRunningApp()) {
+      DeviceLoggingFeature().body
+    } withDependencies: {
+      $0[EmulatorClient.self].startLogging = { _, _ in
+        AsyncThrowingStream { _ in }
+      }
+      $0[EmulatorClient.self].stopLogging = {
+        await recorder.recordStop()
+      }
+    }
+
+    await store.send(.view(.onAppear)) {
+      $0.isViewVisible = true
+      $0.isLogging = true
+    }
+    await store.send(.view(.onDisappear)) {
+      $0.isViewVisible = false
+      $0.isLogging = false
+    }
+
+    XCTAssertEqual(await recorder.stopCount, 1)
+  }
+
   func testLogLinesKeepLatestFiveHundred() async {
     let store = TestStore(initialState: .init()) {
       DeviceLoggingFeature().body
@@ -188,6 +280,20 @@ final class DeviceLoggingFeatureTests: XCTestCase {
     }
     return state
   }
+
+  private func makeStateWithAndroidRunningApp() -> DeviceLoggingFeature.State {
+    var state = DeviceLoggingFeature.State()
+    state.$runningApp.withLock {
+      $0 = .init(
+        platform: .android,
+        bundleId: "com.example.android",
+        processName: "com.example.android",
+        displayName: "AndroidDemo",
+        deviceId: "emulator-5554"
+      )
+    }
+    return state
+  }
 }
 
 private actor PredicateRecorder {
@@ -195,6 +301,19 @@ private actor PredicateRecorder {
 
   func set(_ value: String?) {
     self.value = value
+  }
+}
+
+private actor AndroidLoggingRecorder {
+  private(set) var lastStart: (serial: String, packageName: String)?
+  private(set) var stopCount = 0
+
+  func recordStart(serial: String, packageName: String) {
+    lastStart = (serial, packageName)
+  }
+
+  func recordStop() {
+    stopCount += 1
   }
 }
 

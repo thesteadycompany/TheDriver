@@ -9,12 +9,14 @@ enum EmulatorCommand {
   case installAPK(serial: String, apkPath: String)
   case launchApp(serial: String, packageName: String)
   case runningAVDName(serial: String)
+  case resolvePID(serial: String, packageName: String)
+  case streamLogs(serial: String, pid: String)
 
   var executableName: String {
     switch self {
     case .listAVDs, .bootDevice:
       return "emulator"
-    case .startADBServer, .listDevices, .shutdownDevice, .installAPK, .launchApp, .runningAVDName:
+    case .startADBServer, .listDevices, .shutdownDevice, .installAPK, .launchApp, .runningAVDName, .resolvePID, .streamLogs:
       return "adb"
     }
   }
@@ -37,6 +39,10 @@ enum EmulatorCommand {
       return ["-s", serial, "shell", "monkey", "-p", packageName, "1"]
     case let .runningAVDName(serial):
       return ["-s", serial, "emu", "avd", "name"]
+    case let .resolvePID(serial, packageName):
+      return ["-s", serial, "shell", "pidof", packageName]
+    case let .streamLogs(serial, pid):
+      return ["-s", serial, "logcat", "--pid=\(pid)", "-v", "threadtime"]
     }
   }
 }

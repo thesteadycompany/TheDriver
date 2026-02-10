@@ -43,6 +43,7 @@ let package = Package(
       name: "DeviceLoggingTests",
       dependencies: [
         "DeviceLogging",
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
       ]
@@ -73,6 +74,7 @@ let package = Package(
     .target(
       name: "DeviceLogging",
       dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
       ]

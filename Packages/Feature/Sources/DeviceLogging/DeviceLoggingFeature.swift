@@ -1,4 +1,5 @@
 import Entities
+import EmulatorClient
 import FeatureCore
 import Foundation
 import SimulatorClient
@@ -152,17 +153,26 @@ public struct DeviceLoggingFeature {
   }
   
   private func startLoggingEffect(_ state: inout State) -> Effect<Action> {
-    @Dependency(SimulatorClient.self) var client
     guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
-    guard runningApp.platform == .ios else { return .none }
     state.isLogging = true
+    @Dependency(SimulatorClient.self) var simulatorClient
     let predicate = makeLogPredicate(runningApp: runningApp)
     return .run { send in
       do {
-        let stream = try await client.startLogging(
-          udid: runningApp.deviceId,
-          predicate: predicate
-        )
+        let stream: AsyncThrowingStream<String, Error>
+        switch runningApp.platform {
+        case .ios:
+          stream = try await simulatorClient.startLogging(
+            udid: runningApp.deviceId,
+            predicate: predicate
+          )
+        case .android:
+          @Dependency(EmulatorClient.self) var emulatorClient
+          stream = try await emulatorClient.startLogging(
+            runningApp.deviceId,
+            runningApp.bundleId
+          )
+        }
         for try await log in stream {
           await send(.local(.logReceived(log)))
         }
@@ -176,11 +186,13 @@ public struct DeviceLoggingFeature {
   }
   
   private func stopLoggingEffect() -> Effect<Action> {
-    @Dependency(SimulatorClient.self) var client
+    @Dependency(SimulatorClient.self) var simulatorClient
+    @Dependency(EmulatorClient.self) var emulatorClient
     return .merge(
       .cancel(id: CancelID.logging),
       .run { _ in
-        await client.stopLogging()
+        await simulatorClient.stopLogging()
+        await emulatorClient.stopLogging()
       }
     )
   }
@@ -198,20 +210,34 @@ public struct DeviceLoggingFeature {
   }
   
   private static func errorDescription(_ error: any Error) -> String {
-    guard let error = error as? SimulatorError else {
-      return error.localizedDescription
-    }
-    switch error {
-    case let .notFound(path):
-      return "xcrun 경로를 찾을 수 없습니다: \(path)"
-    case let .nonZeroExit(code, description):
-      let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-      if trimmedDescription.isEmpty {
-        return "명령이 비정상 종료되었습니다. 종료 코드: \(code)"
+    if let simulatorError = error as? SimulatorError {
+      switch simulatorError {
+      case let .notFound(path):
+        return "xcrun 경로를 찾을 수 없습니다: \(path)"
+      case let .nonZeroExit(code, description):
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedDescription.isEmpty {
+          return "명령이 비정상 종료되었습니다. 종료 코드: \(code)"
+        }
+        return "명령이 비정상 종료되었습니다. 종료 코드: \(code), \(trimmedDescription)"
+      case let .invalidArguments(description):
+        return "잘못된 로그 인자: \(description)"
       }
-      return "명령이 비정상 종료되었습니다. 종료 코드: \(code), \(trimmedDescription)"
-    case let .invalidArguments(description):
-      return "잘못된 로그 인자: \(description)"
     }
+    if let emulatorError = error as? EmulatorError {
+      switch emulatorError {
+      case .noBootedDevice:
+        return "실행 중인 Android 에뮬레이터가 없습니다."
+      case let .notFound(path):
+        return "실행 파일을 찾을 수 없습니다: \(path)"
+      case let .nonZeroExit(code, description):
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedDescription.isEmpty {
+          return "에뮬레이터 명령이 실패했습니다. 종료 코드: \(code)"
+        }
+        return "에뮬레이터 명령이 실패했습니다. 종료 코드: \(code), \(trimmedDescription)"
+      }
+    }
+    return error.localizedDescription
   }
 }
