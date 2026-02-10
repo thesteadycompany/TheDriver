@@ -14,55 +14,55 @@ public enum DesignTokens {
     }
 
     public static var accent: Color {
-      dynamicColor(light: hex(0x2B6BFF), dark: hex(0x6B8CFF), name: "DesignTokens.accent")
+      dynamicColor(light: hex(0x5E6AD2), dark: hex(0x7B87F6), name: "DesignTokens.accent")
     }
 
     public static var accentPressed: Color {
-      dynamicColor(light: hex(0x1A4CCD), dark: hex(0x4A63D6), name: "DesignTokens.accentPressed")
+      dynamicColor(light: hex(0x4A56B8), dark: hex(0x6976E8), name: "DesignTokens.accentPressed")
     }
 
     public static var background: Color {
-      dynamicColor(light: hex(0xF7F8FA), dark: hex(0x0E1117), name: "DesignTokens.background")
+      dynamicColor(light: hex(0xF6F7FB), dark: hex(0x08090A), name: "DesignTokens.background")
     }
 
     public static var surface: Color {
-      dynamicColor(light: hex(0xFFFFFF), dark: hex(0x161A22), name: "DesignTokens.surface")
+      dynamicColor(light: hex(0xFFFFFF), dark: hex(0x111318), name: "DesignTokens.surface")
     }
 
     public static var surfaceAccent: Color {
-      dynamicColor(light: hex(0xE8EFFF), dark: hex(0x1B2233), name: "DesignTokens.surfaceAccent")
+      dynamicColor(light: hex(0xEEF1FF), dark: hex(0x1A1D24), name: "DesignTokens.surfaceAccent")
     }
 
     public static var text: Color {
-      dynamicColor(light: hex(0x0F1115), dark: hex(0xF3F4F6), name: "DesignTokens.text")
+      dynamicColor(light: hex(0x0F1115), dark: hex(0xF5F7FA), name: "DesignTokens.text")
     }
 
     public static var mutedText: Color {
-      dynamicColor(light: hex(0x50535A), dark: hex(0xA9AEB8), name: "DesignTokens.mutedText")
+      dynamicColor(light: hex(0x5B6270), dark: hex(0x8B92A1), name: "DesignTokens.mutedText")
     }
 
     public static var border: Color {
       dynamicColor(
         light: hex(0x0F1115, alpha: 0.08),
-        dark: hex(0xF3F4F6, alpha: 0.12),
+        dark: hex(0xFFFFFF, alpha: 0.12),
         name: "DesignTokens.border"
       )
     }
 
     public static var success: Color {
-      dynamicColor(light: hex(0x2BB673), dark: hex(0x42C788), name: "DesignTokens.success")
+      dynamicColor(light: hex(0x2CB67D), dark: hex(0x3ECF8E), name: "DesignTokens.success")
     }
 
     public static var warning: Color {
-      dynamicColor(light: hex(0xF6A500), dark: hex(0xFFBD33), name: "DesignTokens.warning")
+      dynamicColor(light: hex(0xF4B740), dark: hex(0xF9C75D), name: "DesignTokens.warning")
     }
 
     public static var danger: Color {
-      dynamicColor(light: hex(0xE94F37), dark: hex(0xF16956), name: "DesignTokens.danger")
+      dynamicColor(light: hex(0xE35D6A), dark: hex(0xF07A86), name: "DesignTokens.danger")
     }
 
     public static var info: Color {
-      dynamicColor(light: hex(0x3C7BEA), dark: hex(0x5E94F0), name: "DesignTokens.info")
+      dynamicColor(light: hex(0x5E6AD2), dark: hex(0x8B95FF), name: "DesignTokens.info")
     }
 
     #if canImport(AppKit)
