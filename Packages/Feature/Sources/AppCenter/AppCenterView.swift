@@ -1,11 +1,13 @@
 import DevicePicker
 import FeatureCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 @ViewAction(for: AppCenterFeature.self)
 public struct AppCenterView: View {
   @Bindable public var store: StoreOf<AppCenterFeature>
   private let columns = Array(repeating: GridItem(.flexible()), count: 3)
+  private let importableTypes: [UTType] = [UTType.applicationBundle, UTType(filenameExtension: "apk")].compactMap { $0 }
   
   public init(store: StoreOf<AppCenterFeature>) {
     self.store = store
@@ -36,7 +38,7 @@ public struct AppCenterView: View {
     .background(DesignTokens.Colors.background)
     .fileImporter(
       isPresented: $store.isFileImporterPresented,
-      allowedContentTypes: [.applicationBundle]
+      allowedContentTypes: importableTypes
     ) {
       send(.fileSelected($0))
     }

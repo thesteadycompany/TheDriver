@@ -20,7 +20,7 @@ struct AppCenterUploadButton: View {
           .foregroundStyle(DesignTokens.Colors.mutedText)
           .padding(.top, DesignTokens.Spacing.x2)
         
-        Text("지원하는 파일 (.app)")
+        Text("지원하는 파일 (.app, .apk)")
           .font(DesignTokens.Typography.body.font)
           .foregroundStyle(DesignTokens.Colors.mutedText)
           .padding(.top, DesignTokens.Spacing.x1)
@@ -61,7 +61,7 @@ struct AppCenterUploadButton: View {
     .accessibilityIdentifier("appcenter.upload.dropzone")
     .accessibilityValue(isDropTargeted ? "targeted" : "idle")
     .dropDestination(for: URL.self) { items, _ in
-      guard let appURL = items.first(where: { $0.pathExtension.lowercased() == "app" }) else {
+      guard let appURL = items.first(where: { ["app", "apk"].contains($0.pathExtension.lowercased()) }) else {
         return false
       }
       onDropAppURL(appURL)
