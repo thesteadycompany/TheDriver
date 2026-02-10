@@ -10,14 +10,20 @@ struct AppCenterUploadButton: View {
   
   var body: some View {
     HStack {
-      VStack(alignment: .leading, spacing: DesignTokens.Spacing.x2) {
+      VStack(alignment: .leading, spacing: .zero) {
         Text("파일을 업로드해 주세요")
           .font(DesignTokens.Typography.headline.font)
           .foregroundStyle(DesignTokens.Colors.text)
         
+        Text("드래그 또는 + 버튼을 통해 업로드 해주세요.")
+          .font(DesignTokens.Typography.body.font)
+          .foregroundStyle(DesignTokens.Colors.mutedText)
+          .padding(.top, DesignTokens.Spacing.x2)
+        
         Text("지원하는 파일 (.app)")
           .font(DesignTokens.Typography.body.font)
           .foregroundStyle(DesignTokens.Colors.mutedText)
+          .padding(.top, DesignTokens.Spacing.x1)
       }
       
       Spacer()
