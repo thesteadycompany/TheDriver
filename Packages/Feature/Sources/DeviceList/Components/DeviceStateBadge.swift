@@ -24,7 +24,7 @@ struct DeviceStateBadge: View {
 fileprivate extension DeviceState {
   var title: String {
     switch self {
-    case .booted: "부팅 됨"
+    case .booted: "실행 중"
     case .shutdown: "사용 가능"
     }
   }

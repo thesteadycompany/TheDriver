@@ -99,7 +99,7 @@ struct AppBundleCell: View {
 
   private var deviceTitle: String {
     if model.appBundle.platform == .android {
-      return model.androidDevice?.name ?? "기기를 선택해 주세요"
+      return model.androidDevice?.displayName ?? "기기를 선택해 주세요"
     }
     return model.iOSDevice?.name ?? "기기를 선택해 주세요"
   }

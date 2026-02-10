@@ -19,8 +19,7 @@ struct ADBDevicesParser {
 
         let modelToken = parts.first(where: { $0.hasPrefix("model:") })
         let name = modelToken?
-          .replacingOccurrences(of: "model:", with: "")
-          .replacingOccurrences(of: "_", with: " ") ?? serial
+          .replacingOccurrences(of: "model:", with: "") ?? serial
 
         let apiLevelToken = parts.first(where: { $0.hasPrefix("sdk:") })
         let apiLevel = apiLevelToken

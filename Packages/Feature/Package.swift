@@ -40,6 +40,15 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "DeviceListTests",
+      dependencies: [
+        "DeviceList",
+        .product(name: "EmulatorClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
+      ]
+    ),
+    .testTarget(
       name: "DeviceLoggingTests",
       dependencies: [
         "DeviceLogging",

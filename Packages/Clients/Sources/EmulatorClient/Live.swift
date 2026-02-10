@@ -12,23 +12,30 @@ extension EmulatorClient: DependencyKey {
         .parse(adbOutput)
         .filter { $0.serial.hasPrefix("emulator-") }
       let namedDevices = resolveAVDNamesIfNeeded(for: connectedDevices)
-
-      let booted = namedDevices.filter(\.state.isBooted)
-      let adbShutdown = namedDevices.filter { $0.state.isBooted == false }
       let avdOutput = try? EmulatorRunner.shared.run(.listAVDs)
       let avdNames = AVDListParser().parse(avdOutput ?? "")
+      let booted = filterBootedDevices(
+        namedDevices.filter(\.state.isBooted),
+        with: avdNames
+      )
+      let adbShutdown = namedDevices.filter { $0.state.isBooted == false }
       let shutdownByAVD = avdNames
         .filter { name in
-          booted.contains(where: { $0.name == name }) == false
+          booted.contains(where: { canonicalAVDKey($0.avdName) == canonicalAVDKey(name) }) == false
         }
         .map { name in
           EmulatorDevice(
             serial: "avd:\(name)",
             name: name,
+            avdName: name,
             state: .shutdown
           )
         }
-      let shutdown = mergeShutdownDevices(adbShutdown, shutdownByAVD)
+      let mergedShutdown = mergeShutdownDevices(adbShutdown, shutdownByAVD)
+      let shutdown = removeBootedDuplicates(
+        booted: booted,
+        shutdown: mergedShutdown
+      )
 
       return .init(
         bootedDevices: booted,
@@ -81,12 +88,15 @@ private func resolveAVDNamesIfNeeded(
   devices.map { device in
     guard device.state.isBooted else { return device }
     guard device.serial.hasPrefix("emulator-") else { return device }
-    let avdName = try? EmulatorRunner.shared.run(.runningAVDName(serial: device.serial))
-      .trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let avdName, avdName.isEmpty == false else { return device }
+    let output = try? EmulatorRunner.shared.run(.runningAVDName(serial: device.serial))
+    guard
+      let output,
+      let avdName = parseRunningAVDName(output)
+    else { return device }
     return .init(
       serial: device.serial,
       name: avdName,
+      avdName: avdName,
       state: device.state,
       apiLevel: device.apiLevel
     )
@@ -97,10 +107,63 @@ private func mergeShutdownDevices(
   _ first: [EmulatorDevice],
   _ second: [EmulatorDevice]
 ) -> [EmulatorDevice] {
-  var seenNames = Set<String>()
+  var seenAVDNames = Set<String>()
   return (first + second).filter { device in
-    seenNames.insert(device.name).inserted
+    seenAVDNames.insert(canonicalAVDKey(device.avdName)).inserted
   }
+}
+
+func removeBootedDuplicates(
+  booted: [EmulatorDevice],
+  shutdown: [EmulatorDevice]
+) -> [EmulatorDevice] {
+  let bootedAVDNames = Set(booted.map { canonicalAVDKey($0.avdName) })
+  return shutdown.filter { device in
+    bootedAVDNames.contains(canonicalAVDKey(device.avdName)) == false
+  }
+}
+
+func filterBootedDevices(
+  _ devices: [EmulatorDevice],
+  with avdNames: [String]
+) -> [EmulatorDevice] {
+  let canonicalAVDNames = Set(avdNames.map(canonicalAVDKey))
+  guard canonicalAVDNames.isEmpty == false else { return devices }
+  return devices.filter { device in
+    canonicalAVDNames.contains(canonicalAVDKey(device.avdName))
+  }
+}
+
+func parseRunningAVDName(_ output: String) -> String? {
+  output
+    .components(separatedBy: .newlines)
+    .map { String($0).trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
+    .map(normalizeAVDNameLine)
+    .first { line in
+      line.isEmpty == false
+        && line.hasPrefix("adb:") == false
+        && line.hasPrefix("*") == false
+    }
+}
+
+private func normalizeAVDNameLine(_ line: String) -> String {
+  let withoutControlCharacters = String(
+    line.unicodeScalars.filter { scalar in
+      CharacterSet.controlCharacters.contains(scalar) == false
+    }
+  )
+  let trimmed = withoutControlCharacters.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+  guard trimmed.isEmpty == false else { return "" }
+  if trimmed == "OK" { return "" }
+  if trimmed.hasSuffix(" OK") {
+    return String(trimmed.dropLast(3))
+      .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+  }
+  return trimmed
+}
+
+private func canonicalAVDKey(_ avdName: String) -> String {
+  normalizeAVDNameLine(avdName)
 }
 
 private func parsePrimaryPID(_ output: String) -> String? {

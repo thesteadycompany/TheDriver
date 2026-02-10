@@ -144,7 +144,7 @@ public struct DeviceListFeature {
 
       case .shutdown:
         return .runWithToast { send in
-          try await client.bootDevice(device.name)
+          try await client.bootDevice(device.avdName)
           await send(.local(.reload))
         }
       }

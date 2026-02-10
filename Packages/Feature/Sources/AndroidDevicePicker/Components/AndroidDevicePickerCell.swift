@@ -13,7 +13,7 @@ struct AndroidDevicePickerCell: View {
           .font(DesignTokens.Typography.caption.font)
           .foregroundStyle(DesignTokens.Colors.mutedText)
 
-        Text(device.name)
+        Text(device.displayName)
           .font(DesignTokens.Typography.body.font)
           .foregroundStyle(DesignTokens.Colors.text)
           .frame(maxWidth: .infinity, alignment: .leading)
