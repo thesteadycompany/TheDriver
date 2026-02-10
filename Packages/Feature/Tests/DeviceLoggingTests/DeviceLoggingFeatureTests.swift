@@ -179,6 +179,7 @@ final class DeviceLoggingFeatureTests: XCTestCase {
     var state = DeviceLoggingFeature.State()
     state.$runningApp.withLock {
       $0 = .init(
+        platform: .ios,
         bundleId: "com.example.demo",
         processName: "DemoApp",
         displayName: "Demo",

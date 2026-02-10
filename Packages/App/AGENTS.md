@@ -24,3 +24,7 @@ Reference:
 
 ## Related Skills
 - `.opencode/skill/tca-the-driver/SKILL.md`
+
+## Change Checklist
+- If app-level composition changes (tabs, onboarding, platform entry flows), update this document and the TCA skill checklist.
+- If child-parent event contracts change, document the `Action.Delegate` cases alongside code changes.

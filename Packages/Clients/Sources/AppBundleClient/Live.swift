@@ -5,21 +5,41 @@ import Foundation
 extension AppBundleClient: DependencyKey {
   public static let liveValue = AppBundleClient(
     appBundle: { url in
-      guard
-        url.pathExtension.lowercased() == "app",
-        let bundle = Bundle(url: url),
-        let identifier = bundle.bundleIdentifier,
-        let executableName = bundle.executableName,
-        let name = bundle.representedName
-      else {
-        throw AppBundleError.notSupportedFormat
+      let fileExtension = url.pathExtension.lowercased()
+
+      if fileExtension == "app" {
+        guard
+          let bundle = Bundle(url: url),
+          let identifier = bundle.bundleIdentifier,
+          let executableName = bundle.executableName,
+          let name = bundle.representedName
+        else {
+          throw AppBundleError.notSupportedFormat
+        }
+        return .init(
+          id: identifier,
+          platform: .ios,
+          name: name,
+          executableName: executableName,
+          url: url
+        )
       }
-      return .init(
-        id: identifier,
-        name: name,
-        executableName: executableName,
-        url: url
-      )
+
+      if fileExtension == "apk" {
+        let fileName = url.deletingPathExtension().lastPathComponent
+        guard fileName.isEmpty == false else {
+          throw AppBundleError.notSupportedFormat
+        }
+        return .init(
+          id: fileName,
+          platform: .android,
+          name: fileName,
+          executableName: "",
+          url: url
+        )
+      }
+
+      throw AppBundleError.notSupportedFormat
     }
   )
 }

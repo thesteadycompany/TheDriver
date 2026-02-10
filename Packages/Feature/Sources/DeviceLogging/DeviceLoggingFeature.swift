@@ -154,6 +154,7 @@ public struct DeviceLoggingFeature {
   private func startLoggingEffect(_ state: inout State) -> Effect<Action> {
     @Dependency(SimulatorClient.self) var client
     guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
+    guard runningApp.platform == .ios else { return .none }
     state.isLogging = true
     let predicate = makeLogPredicate(runningApp: runningApp)
     return .run { send in

@@ -56,10 +56,12 @@ struct AppBundleCell: View {
   private var deviceButton: some View {
     Button(action: device) {
       HStack {
-        Text(model.device?.name ?? "기기를 선택해 주세요")
+        Text(deviceTitle)
           .font(DesignTokens.Typography.body.font)
           .foregroundStyle(
-            model.device == nil ? DesignTokens.Colors.mutedText : DesignTokens.Colors.text
+            model.appBundle.platform == .android
+              ? DesignTokens.Colors.text
+              : (model.device == nil ? DesignTokens.Colors.mutedText : DesignTokens.Colors.text)
           )
           .frame(maxWidth: .infinity, alignment: .leading)
         
@@ -77,6 +79,7 @@ struct AppBundleCell: View {
       RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
         .stroke(DesignTokens.Colors.border, lineWidth: 1)
     }
+    .disabled(model.appBundle.platform == .android)
   }
   
   private var installButton: some View {
@@ -86,6 +89,13 @@ struct AppBundleCell: View {
     }
     .buttonStyle(.borderedProminent)
     .tint(DesignTokens.Colors.accent)
-    .disabled(model.device == nil)
+    .disabled(model.appBundle.platform == .ios && model.device == nil)
+  }
+
+  private var deviceTitle: String {
+    if model.appBundle.platform == .android {
+      return "실행 중인 에뮬레이터 자동 선택"
+    }
+    return model.device?.name ?? "기기를 선택해 주세요"
   }
 }

@@ -23,6 +23,7 @@ let package = Package(
       dependencies: [
         "DevicePicker",
         .product(name: "AppBundleClient", package: "Clients"),
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
         .product(name: "SimulatorClient", package: "Clients"),
       ]
@@ -32,7 +33,9 @@ let package = Package(
       dependencies: [
         "AppCenter",
         .product(name: "AppBundleClient", package: "Clients"),
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
+        .product(name: "SimulatorClient", package: "Clients"),
       ]
     ),
     .testTarget(

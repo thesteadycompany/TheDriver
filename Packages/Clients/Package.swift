@@ -10,6 +10,7 @@ let package = Package(
   products: [
     .singleTargetLibrary("AppBundleClient"),
     .singleTargetLibrary("DeveloperToolsClient"),
+    .singleTargetLibrary("EmulatorClient"),
     .singleTargetLibrary("SimulatorClient"),
   ],
   dependencies: [
@@ -29,9 +30,21 @@ let package = Package(
       ]
     ),
     .target(
+      name: "EmulatorClient",
+      dependencies: [
+        .product(name: "ClientCore", package: "Platform")
+      ]
+    ),
+    .target(
       name: "SimulatorClient",
       dependencies: [
         .product(name: "ClientCore", package: "Platform")
+      ]
+    ),
+    .testTarget(
+      name: "EmulatorClientTests",
+      dependencies: [
+        "EmulatorClient",
       ]
     ),
   ]

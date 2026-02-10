@@ -1,5 +1,6 @@
 import AppBundleClient
 import DevicePicker
+import EmulatorClient
 import Entities
 import FeatureCore
 import Foundation
@@ -109,6 +110,11 @@ public struct AppCenterFeature {
   ) -> Effect<Action> {
     switch action {
     case let .deviceTapped(model):
+      if model.appBundle.platform == .android {
+        @Dependency(ToastClient.self) var toastClient
+        toastClient.showWarning("Android는 실행 중인 에뮬레이터가 자동으로 선택됩니다.")
+        return .none
+      }
       state.devicePicker = .init(
         appBundle: model.appBundle,
         current: model.device
@@ -124,7 +130,7 @@ public struct AppCenterFeature {
           // TODO: - Save App Bundle
           await send(.local(.setModels([.init(appBundle: appBundle)])))
         } catch let error as AppBundleError where error == .notSupportedFormat {
-          toastClient.showWarning("지원하지 않는 파일입니다. (.app)")
+          toastClient.showWarning("지원하지 않는 파일입니다. (.app, .apk)")
           return
         } catch {
           throw error
@@ -137,40 +143,81 @@ public struct AppCenterFeature {
       return .none
       
     case let .installTapped(model):
-      @Dependency(SimulatorClient.self) var client
-      @Dependency(ToastClient.self) var toastClient
-      guard let device = model.device else {
-        toastClient.showWarning("선택된 기기가 없습니다.")
-        return .none
+      switch model.appBundle.platform {
+      case .ios:
+        return installiOSAppEffect(model)
+      case .android:
+        return installAndroidAppEffect(model)
       }
-      return .runWithToast { send in
-        try await client.installApp(
-          udid: device.udid,
-          appPath: model.appBundle.url.path()
-        )
-        _ = try await client.launchApp(
-          device.udid,
-          model.appBundle.id,
-          [],
-          .init()
-        )
-        await send(
-          .local(
-            .setRunningApp(
-              .init(
-                bundleId: model.appBundle.id,
-                processName: model.appBundle.executableName,
-                displayName: model.appBundle.name,
-                deviceId: device.udid
-              )
-            )
-          )
-        )
-      }
-      
+
     case .uploadTapped:
       state.isFileImporterPresented = true
       return .none
+    }
+  }
+
+  private func installiOSAppEffect(_ model: AppBundleCellModel) -> Effect<Action> {
+    @Dependency(SimulatorClient.self) var client
+    @Dependency(ToastClient.self) var toastClient
+    guard let device = model.device else {
+      toastClient.showWarning("선택된 기기가 없습니다.")
+      return .none
+    }
+    return .runWithToast { send in
+      try await client.installApp(
+        udid: device.udid,
+        appPath: model.appBundle.url.path()
+      )
+      _ = try await client.launchApp(
+        device.udid,
+        model.appBundle.id,
+        [],
+        .init()
+      )
+      await send(
+        .local(
+          .setRunningApp(
+            .init(
+              platform: .ios,
+              bundleId: model.appBundle.id,
+              processName: model.appBundle.executableName,
+              displayName: model.appBundle.name,
+              deviceId: device.udid
+            )
+          )
+        )
+      )
+    }
+  }
+
+  private func installAndroidAppEffect(_ model: AppBundleCellModel) -> Effect<Action> {
+    @Dependency(EmulatorClient.self) var client
+    return .runWithToast { send in
+      let devices = try await client.requestDevices()
+      guard let device = devices.bootedDevices.first else {
+        throw EmulatorError.noBootedDevice
+      }
+      try await client.installAPK(
+        device.serial,
+        model.appBundle.url.path()
+      )
+      try await client.launchApp(
+        device.serial,
+        model.appBundle.id
+      )
+      await send(
+        .local(
+          .setRunningApp(
+            .init(
+              platform: .android,
+              bundleId: model.appBundle.id,
+              processName: model.appBundle.id,
+              displayName: model.appBundle.name,
+              deviceId: device.serial
+            )
+          )
+        )
+      )
     }
   }
 }

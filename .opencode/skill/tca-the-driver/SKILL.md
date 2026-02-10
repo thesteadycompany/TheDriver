@@ -56,3 +56,5 @@ References:
 - Parent feature uses `Scope` for children.
 - Views send actions through `Action.View` (and bindings only when needed).
 - Side effects go through dependency clients.
+- If new platform/client/entity was introduced, update corresponding AGENTS/skill docs in the same change.
+- If public API/Action contracts changed, expand tests in the touched modules before finishing.

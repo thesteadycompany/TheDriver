@@ -104,3 +104,8 @@ Reference:
 - TCA conventions: `.opencode/skill/tca-the-driver/SKILL.md`
 - Swift style: `.opencode/skill/swift-style-the-driver/SKILL.md`
 - Xcode workflow + repo hygiene: `.opencode/skill/xcode-workflow-the-driver/SKILL.md`
+
+## Change Checklist
+- When introducing a new platform/client/entity, update relevant `AGENTS.md` and skill docs in the same task.
+- When public API signatures change, update affected feature/client tests in the same task.
+- When adding a new feature flow, document parent-child delegate contracts and overlay/root composition decisions.
