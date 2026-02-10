@@ -21,6 +21,7 @@ let package = Package(
     .target(
       name: "AppCenter",
       dependencies: [
+        "AndroidDevicePicker",
         "DevicePicker",
         .product(name: "AppBundleClient", package: "Clients"),
         .product(name: "EmulatorClient", package: "Clients"),
@@ -51,6 +52,13 @@ let package = Package(
       dependencies: [
         "Onboarding",
         .product(name: "DeveloperToolsClient", package: "Clients"),
+        .product(name: "FeatureCore", package: "Platform"),
+      ]
+    ),
+    .target(
+      name: "AndroidDevicePicker",
+      dependencies: [
+        .product(name: "EmulatorClient", package: "Clients"),
         .product(name: "FeatureCore", package: "Platform"),
       ]
     ),

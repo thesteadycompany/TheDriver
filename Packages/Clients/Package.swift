@@ -42,6 +42,12 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "AppBundleClientTests",
+      dependencies: [
+        "AppBundleClient",
+      ]
+    ),
+    .testTarget(
       name: "EmulatorClientTests",
       dependencies: [
         "EmulatorClient",

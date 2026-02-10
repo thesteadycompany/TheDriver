@@ -1,3 +1,4 @@
+import AndroidDevicePicker
 import AppBundleClient
 import DevicePicker
 import EmulatorClient
@@ -13,6 +14,7 @@ public struct AppCenterFeature {
   @ObservableState
   public struct State: Equatable {
     @Presents var devicePicker: DevicePickerFeature.State?
+    @Presents var androidDevicePicker: AndroidDevicePickerFeature.State?
     @Shared(.runningApp) var runningApp: RunningApp?
     var models: IdentifiedArrayOf<AppBundleCellModel> = .init()
     var isFileImporterPresented = false
@@ -29,6 +31,7 @@ public struct AppCenterFeature {
     
     @CasePathable
     public enum Child {
+      case androidDevicePicker(PresentationAction<AndroidDevicePickerFeature.Action>)
       case devicePicker(PresentationAction<DevicePickerFeature.Action>)
     }
     
@@ -66,6 +69,9 @@ public struct AppCenterFeature {
     .ifLet(\.$devicePicker, action: \.child.devicePicker) {
       DevicePickerFeature()
     }
+    .ifLet(\.$androidDevicePicker, action: \.child.androidDevicePicker) {
+      AndroidDevicePickerFeature()
+    }
   }
   
   private func child(
@@ -73,12 +79,26 @@ public struct AppCenterFeature {
     _ action: Action.Child
   ) -> Effect<Action> {
     switch action {
+    case let .androidDevicePicker(action):
+      switch action {
+      case let .presented(.delegate(action)):
+        switch action {
+        case let .saveTapped(appBundle, device):
+          state.models[id: appBundle.id]?.androidDevice = device
+          state.androidDevicePicker = nil
+          return .none
+        }
+
+      default:
+        return .none
+      }
+
     case let .devicePicker(action):
       switch action {
       case let .presented(.delegate(action)):
         switch action {
         case let .saveTapped(appBundle, device):
-          state.models[id: appBundle.id]?.device = device
+          state.models[id: appBundle.id]?.iOSDevice = device
           state.devicePicker = nil
           return .none
         }
@@ -111,13 +131,15 @@ public struct AppCenterFeature {
     switch action {
     case let .deviceTapped(model):
       if model.appBundle.platform == .android {
-        @Dependency(ToastClient.self) var toastClient
-        toastClient.showWarning("Android는 실행 중인 에뮬레이터가 자동으로 선택됩니다.")
+        state.androidDevicePicker = .init(
+          appBundle: model.appBundle,
+          current: model.androidDevice
+        )
         return .none
       }
       state.devicePicker = .init(
         appBundle: model.appBundle,
-        current: model.device
+        current: model.iOSDevice
       )
       return .none
       
@@ -159,7 +181,7 @@ public struct AppCenterFeature {
   private func installiOSAppEffect(_ model: AppBundleCellModel) -> Effect<Action> {
     @Dependency(SimulatorClient.self) var client
     @Dependency(ToastClient.self) var toastClient
-    guard let device = model.device else {
+    guard let device = model.iOSDevice else {
       toastClient.showWarning("선택된 기기가 없습니다.")
       return .none
     }
@@ -192,11 +214,12 @@ public struct AppCenterFeature {
 
   private func installAndroidAppEffect(_ model: AppBundleCellModel) -> Effect<Action> {
     @Dependency(EmulatorClient.self) var client
+    @Dependency(ToastClient.self) var toastClient
+    guard let device = model.androidDevice else {
+      toastClient.showWarning("선택된 기기가 없습니다.")
+      return .none
+    }
     return .runWithToast { send in
-      let devices = try await client.requestDevices()
-      guard let device = devices.bootedDevices.first else {
-        throw EmulatorError.noBootedDevice
-      }
       try await client.installAPK(
         device.serial,
         model.appBundle.url.path()

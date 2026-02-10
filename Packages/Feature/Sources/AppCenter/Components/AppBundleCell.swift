@@ -5,11 +5,17 @@ import SwiftUI
 public struct AppBundleCellModel: Equatable, Identifiable, Sendable {
   public var id: String { appBundle.id }
   public let appBundle: AppBundle
-  public var device: SimulatorDevice?
-  
-  public init(appBundle: AppBundle, device: SimulatorDevice? = nil) {
+  public var iOSDevice: SimulatorDevice?
+  public var androidDevice: EmulatorDevice?
+
+  public init(
+    appBundle: AppBundle,
+    iOSDevice: SimulatorDevice? = nil,
+    androidDevice: EmulatorDevice? = nil
+  ) {
     self.appBundle = appBundle
-    self.device = device
+    self.iOSDevice = iOSDevice
+    self.androidDevice = androidDevice
   }
 }
 
@@ -60,8 +66,8 @@ struct AppBundleCell: View {
           .font(DesignTokens.Typography.body.font)
           .foregroundStyle(
             model.appBundle.platform == .android
-              ? DesignTokens.Colors.text
-              : (model.device == nil ? DesignTokens.Colors.mutedText : DesignTokens.Colors.text)
+              ? (model.androidDevice == nil ? DesignTokens.Colors.mutedText : DesignTokens.Colors.text)
+              : (model.iOSDevice == nil ? DesignTokens.Colors.mutedText : DesignTokens.Colors.text)
           )
           .frame(maxWidth: .infinity, alignment: .leading)
         
@@ -79,7 +85,6 @@ struct AppBundleCell: View {
       RoundedRectangle(cornerRadius: DesignTokens.Radius.card)
         .stroke(DesignTokens.Colors.border, lineWidth: 1)
     }
-    .disabled(model.appBundle.platform == .android)
   }
   
   private var installButton: some View {
@@ -89,13 +94,22 @@ struct AppBundleCell: View {
     }
     .buttonStyle(.borderedProminent)
     .tint(DesignTokens.Colors.accent)
-    .disabled(model.appBundle.platform == .ios && model.device == nil)
+    .disabled(isInstallDisabled)
   }
 
   private var deviceTitle: String {
     if model.appBundle.platform == .android {
-      return "실행 중인 에뮬레이터 자동 선택"
+      return model.androidDevice?.name ?? "기기를 선택해 주세요"
     }
-    return model.device?.name ?? "기기를 선택해 주세요"
+    return model.iOSDevice?.name ?? "기기를 선택해 주세요"
+  }
+
+  private var isInstallDisabled: Bool {
+    switch model.appBundle.platform {
+    case .ios:
+      model.iOSDevice == nil
+    case .android:
+      model.androidDevice == nil
+    }
   }
 }

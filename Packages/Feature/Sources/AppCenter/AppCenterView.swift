@@ -1,3 +1,4 @@
+import AndroidDevicePicker
 import DevicePicker
 import FeatureCore
 import SwiftUI
@@ -46,6 +47,11 @@ public struct AppCenterView: View {
       item: $store.scope(state: \.devicePicker, action: \.child.devicePicker)
     ) {
       DevicePickerView(store: $0)
+    }
+    .sheet(
+      item: $store.scope(state: \.androidDevicePicker, action: \.child.androidDevicePicker)
+    ) {
+      AndroidDevicePickerView(store: $0)
     }
   }
 }

@@ -10,6 +10,14 @@ import XCTest
 
 @MainActor
 final class AppCenterFeatureTests: XCTestCase {
+  private let setRunningAppCasePath = AnyCasePath<AppCenterFeature.Action, RunningApp?>(
+    embed: { .local(.setRunningApp($0)) },
+    extract: { action in
+      guard case let .local(.setRunningApp(runningApp)) = action else { return nil }
+      return runningApp
+    }
+  )
+
   func testUploadTappedPresentsFileImporter() async {
     let store = TestStore(initialState: AppCenterFeature.State()) {
       AppCenterFeature().body
@@ -114,7 +122,7 @@ final class AppCenterFeatureTests: XCTestCase {
       state: .booted,
       isAvailable: true
     )
-    let model = AppBundleCellModel(appBundle: bundle, device: device)
+    let model = AppBundleCellModel(appBundle: bundle, iOSDevice: device)
 
     var initialState = AppCenterFeature.State()
     initialState.models = .init(uniqueElements: [model])
@@ -128,15 +136,17 @@ final class AppCenterFeatureTests: XCTestCase {
     }
 
     await store.send(.view(.installTapped(model)))
-    await store.receive(.local(.setRunningApp(
-      .init(
-        platform: .ios,
-        bundleId: "com.example.ios",
-        processName: "iOSApp",
-        displayName: "iOSApp",
-        deviceId: "SIM-UDID"
-      )
-    )))
+    await store.receive(setRunningAppCasePath) {
+      $0.$runningApp.withLock {
+        $0 = .init(
+          platform: .ios,
+          bundleId: "com.example.ios",
+          processName: "iOSApp",
+          displayName: "iOSApp",
+          deviceId: "SIM-UDID"
+        )
+      }
+    }
   }
 
   func testInstallTappedAndroidUsesEmulatorClient() async {
@@ -147,7 +157,15 @@ final class AppCenterFeatureTests: XCTestCase {
       executableName: "",
       url: URL(fileURLWithPath: "/tmp/AndroidApp.apk")
     )
-    let model = AppBundleCellModel(appBundle: bundle)
+    let model = AppBundleCellModel(
+      appBundle: bundle,
+      androidDevice: .init(
+        serial: "EMU-1",
+        name: "Pixel 8",
+        state: .booted,
+        apiLevel: 34
+      )
+    )
     let recorder = InstallRecorder()
 
     var initialState = AppCenterFeature.State()
@@ -156,14 +174,6 @@ final class AppCenterFeatureTests: XCTestCase {
     let store = TestStore(initialState: initialState) {
       AppCenterFeature().body
     } withDependencies: {
-      $0[EmulatorClient.self].requestDevices = {
-        .init(
-          bootedDevices: [
-            .init(serial: "EMU-1", name: "Pixel 8", state: .booted, apiLevel: 34)
-          ],
-          shutdownDevices: []
-        )
-      }
       $0[EmulatorClient.self].installAPK = { serial, path in
         await recorder.recordInstall(serial: serial, path: path)
       }
@@ -174,15 +184,17 @@ final class AppCenterFeatureTests: XCTestCase {
     }
 
     await store.send(.view(.installTapped(model)))
-    await store.receive(.local(.setRunningApp(
-      .init(
-        platform: .android,
-        bundleId: "com.example.android",
-        processName: "com.example.android",
-        displayName: "AndroidApp",
-        deviceId: "EMU-1"
-      )
-    )))
+    await store.receive(setRunningAppCasePath) {
+      $0.$runningApp.withLock {
+        $0 = .init(
+          platform: .android,
+          bundleId: "com.example.android",
+          processName: "com.example.android",
+          displayName: "AndroidApp",
+          deviceId: "EMU-1"
+        )
+      }
+    }
 
     let installed = await recorder.installed()
     XCTAssertEqual(installed.serial, "EMU-1")
@@ -191,6 +203,118 @@ final class AppCenterFeatureTests: XCTestCase {
     let launched = await recorder.launched()
     XCTAssertEqual(launched.serial, "EMU-1")
     XCTAssertEqual(launched.appPackage, "com.example.android")
+  }
+
+  func testDeviceTappedAndroidPresentsAndroidDevicePicker() async {
+    let bundle = AppBundle(
+      id: "com.example.android",
+      platform: .android,
+      name: "AndroidApp",
+      executableName: "",
+      url: URL(fileURLWithPath: "/tmp/AndroidApp.apk")
+    )
+    let model = AppBundleCellModel(appBundle: bundle)
+    var initialState = AppCenterFeature.State()
+    initialState.models = .init(uniqueElements: [model])
+    let store = TestStore(initialState: initialState) {
+      AppCenterFeature().body
+    }
+
+    await store.send(.view(.deviceTapped(model))) {
+      $0.androidDevicePicker = .init(
+        appBundle: bundle,
+        current: nil
+      )
+    }
+  }
+
+  func testAndroidPickerSaveTappedSetsModelDevice() async {
+    let bundle = AppBundle(
+      id: "com.example.android",
+      platform: .android,
+      name: "AndroidApp",
+      executableName: "",
+      url: URL(fileURLWithPath: "/tmp/AndroidApp.apk")
+    )
+    let device = EmulatorDevice(
+      serial: "EMU-1",
+      name: "Pixel 8",
+      state: .booted,
+      apiLevel: 34
+    )
+    let model = AppBundleCellModel(appBundle: bundle)
+    var initialState = AppCenterFeature.State()
+    initialState.models = .init(uniqueElements: [model])
+    initialState.androidDevicePicker = .init(appBundle: bundle, current: nil)
+    let store = TestStore(initialState: initialState) {
+      AppCenterFeature().body
+    }
+
+    await store.send(
+      .child(
+        .androidDevicePicker(
+          .presented(
+            .delegate(
+              .saveTapped(appBundle: bundle, device: device)
+            )
+          )
+        )
+      )
+    ) {
+      $0.models[id: bundle.id]?.androidDevice = device
+      $0.androidDevicePicker = nil
+    }
+  }
+
+  func testInstallTappedAndroidWithoutSelectedDeviceShowsWarning() async {
+    let bundle = AppBundle(
+      id: "com.example.android",
+      platform: .android,
+      name: "AndroidApp",
+      executableName: "",
+      url: URL(fileURLWithPath: "/tmp/AndroidApp.apk")
+    )
+    let model = AppBundleCellModel(appBundle: bundle)
+    let toastRecorder = ToastRecorder()
+    let recorder = InstallRecorder()
+
+    var initialState = AppCenterFeature.State()
+    initialState.models = .init(uniqueElements: [model])
+
+    let store = TestStore(initialState: initialState) {
+      AppCenterFeature().body
+    } withDependencies: {
+      $0[EmulatorClient.self].installAPK = { serial, path in
+        await recorder.recordInstall(serial: serial, path: path)
+      }
+      $0[EmulatorClient.self].launchApp = { serial, package in
+        await recorder.recordLaunch(serial: serial, package: package)
+      }
+      $0[ToastClient.self].show = { toast in
+        Task { await toastRecorder.append(toast) }
+      }
+    }
+
+    await store.send(.view(.installTapped(model)))
+    await store.finish()
+
+    let installed = await recorder.installed()
+    XCTAssertEqual(installed.serial, "")
+    XCTAssertEqual(installed.path, "")
+
+    let launched = await recorder.launched()
+    XCTAssertEqual(launched.serial, "")
+    XCTAssertEqual(launched.appPackage, "")
+
+    let toasts = await toastRecorder.values()
+    XCTAssertEqual(toasts.count, 1)
+    XCTAssertEqual(toasts.first?.message, "선택된 기기가 없습니다.")
+    switch toasts.first?.style {
+    case .warning:
+      break
+    default:
+      XCTFail("Expected warning toast")
+    }
   }
 }
 
