@@ -131,8 +131,9 @@ final actor LogStreamer {
   
   private var process: Process?
   private var outPipe: Pipe?
+  private var errPipe: Pipe?
   
-  func start(udid: String, predicate: String?) throws -> AsyncStream<String> {
+  func start(udid: String, predicate: String?) throws -> AsyncThrowingStream<String, Error> {
     stop()
     let path = Runner.shared.path
     let process = Process()
@@ -151,7 +152,9 @@ final actor LogStreamer {
     process.standardOutput = outPipe
     process.standardError = errPipe
     
-    let stream = AsyncStream<String> { continuation in
+    let stream = AsyncThrowingStream<String, Error> { continuation in
+      let stdError = LockedString()
+
       outPipe.fileHandleForReading.readabilityHandler = { handle in
         let data = handle.availableData
         if data.isEmpty { return }
@@ -159,25 +162,75 @@ final actor LogStreamer {
         chunk.split(separator: "\n", omittingEmptySubsequences: true)
           .forEach { continuation.yield(String($0)) }
       }
+
+      errPipe.fileHandleForReading.readabilityHandler = { handle in
+        let data = handle.availableData
+        if data.isEmpty { return }
+        stdError.append(String(data: data, encoding: .utf8) ?? "")
+      }
+
+      process.terminationHandler = { process in
+        outPipe.fileHandleForReading.readabilityHandler = nil
+        errPipe.fileHandleForReading.readabilityHandler = nil
+
+        if process.terminationStatus == 0 {
+          continuation.finish()
+          return
+        }
+
+        continuation.finish(
+          throwing: SimulatorError.nonZeroExit(
+            code: process.terminationStatus,
+            description: stdError.trimmedValue()
+          )
+        )
+      }
+
       continuation.onTermination = { _ in
         outPipe.fileHandleForReading.readabilityHandler = nil
+        errPipe.fileHandleForReading.readabilityHandler = nil
+        process.terminationHandler = nil
         process.terminate()
       }
+
       do {
         try process.run()
       } catch {
-        continuation.finish()
+        continuation.finish(throwing: SimulatorError.notFound(path: path))
       }
     }
+
     self.process = process
     self.outPipe = outPipe
+    self.errPipe = errPipe
     return stream
   }
   
   func stop() {
     outPipe?.fileHandleForReading.readabilityHandler = nil
+    errPipe?.fileHandleForReading.readabilityHandler = nil
+    process?.terminationHandler = nil
     process?.terminate()
     process = nil
     outPipe = nil
+    errPipe = nil
+  }
+}
+
+private final class LockedString: @unchecked Sendable {
+  private let lock = NSLock()
+  private var value = ""
+
+  func append(_ text: String) {
+    lock.lock()
+    value += text
+    lock.unlock()
+  }
+
+  func trimmedValue() -> String {
+    lock.lock()
+    let copied = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    lock.unlock()
+    return copied
   }
 }

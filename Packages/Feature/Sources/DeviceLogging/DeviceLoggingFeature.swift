@@ -137,18 +137,19 @@ public struct DeviceLoggingFeature {
     @Dependency(SimulatorClient.self) var client
     guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
     state.isLogging = true
-    let predicate = "subsystem == \"\(runningApp.bundleId)\""
+    let predicate = makeLogPredicate(runningApp: runningApp)
     return .run { send in
       do {
         let stream = try await client.startLogging(
           udid: runningApp.deviceId,
           predicate: predicate
         )
-        for await log in stream {
+        for try await log in stream {
           await send(.local(.logReceived(log)))
         }
         await send(.local(.loggingStopped))
       } catch {
+        await send(.local(.logReceived("[오류] 로그 스트림 실패: \(Self.errorDescription(error))")))
         await send(.local(.loggingStopped))
       }
     }
@@ -163,5 +164,35 @@ public struct DeviceLoggingFeature {
         await client.stopLogging()
       }
     )
+  }
+
+  private func makeLogPredicate(runningApp: RunningApp) -> String {
+    let bundleID = escapeLogPredicateValue(runningApp.bundleId)
+    let processName = escapeLogPredicateValue(runningApp.processName)
+    return "subsystem == \"\(bundleID)\" OR process == \"\(processName)\""
+  }
+
+  private func escapeLogPredicateValue(_ value: String) -> String {
+    value
+      .replacingOccurrences(of: "\\", with: "\\\\")
+      .replacingOccurrences(of: "\"", with: "\\\"")
+  }
+
+  private static func errorDescription(_ error: any Error) -> String {
+    guard let error = error as? SimulatorError else {
+      return error.localizedDescription
+    }
+    switch error {
+    case let .notFound(path):
+      return "xcrun 경로를 찾을 수 없습니다: \(path)"
+    case let .nonZeroExit(code, description):
+      let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+      if trimmedDescription.isEmpty {
+        return "명령이 비정상 종료되었습니다. 종료 코드: \(code)"
+      }
+      return "명령이 비정상 종료되었습니다. 종료 코드: \(code), \(trimmedDescription)"
+    case let .invalidArguments(description):
+      return "잘못된 로그 인자: \(description)"
+    }
   }
 }

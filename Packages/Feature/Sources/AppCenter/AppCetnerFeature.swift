@@ -159,6 +159,7 @@ public struct AppCenterFeature {
             .setRunningApp(
               .init(
                 bundleId: model.appBundle.id,
+                processName: model.appBundle.executableName,
                 displayName: model.appBundle.name,
                 deviceId: device.udid
               )

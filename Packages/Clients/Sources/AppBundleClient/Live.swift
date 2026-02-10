@@ -9,6 +9,7 @@ extension AppBundleClient: DependencyKey {
         url.pathExtension.lowercased() == "app",
         let bundle = Bundle(url: url),
         let identifier = bundle.bundleIdentifier,
+        let executableName = bundle.executableName,
         let name = bundle.representedName
       else {
         throw AppBundleError.notSupportedFormat
@@ -16,6 +17,7 @@ extension AppBundleClient: DependencyKey {
       return .init(
         id: identifier,
         name: name,
+        executableName: executableName,
         url: url
       )
     }
@@ -33,5 +35,9 @@ fileprivate extension Bundle {
   
   var displayName: String? {
     object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+  }
+
+  var executableName: String? {
+    object(forInfoDictionaryKey: "CFBundleExecutable") as? String
   }
 }

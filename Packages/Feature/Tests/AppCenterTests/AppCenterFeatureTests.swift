@@ -22,11 +22,13 @@ final class AppCenterFeatureTests: XCTestCase {
     let existingBundle = AppBundle(
       id: "com.example.existing",
       name: "Existing",
+      executableName: "Existing",
       url: URL(fileURLWithPath: "/tmp/Existing.app")
     )
     let newBundle = AppBundle(
       id: "com.example.new",
       name: "New",
+      executableName: "New",
       url: URL(fileURLWithPath: "/tmp/New.app")
     )
     var initialState = AppCenterFeature.State()
@@ -58,6 +60,7 @@ final class AppCenterFeatureTests: XCTestCase {
     let existingBundle = AppBundle(
       id: "com.example.existing",
       name: "Existing",
+      executableName: "Existing",
       url: URL(fileURLWithPath: "/tmp/Existing.app")
     )
     let initialModels = IdentifiedArray(uniqueElements: [
