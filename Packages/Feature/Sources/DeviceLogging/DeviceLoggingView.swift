@@ -89,11 +89,41 @@ public struct DeviceLoggingView: View {
           TextField(
             "로그 검색",
             text: Binding(
-              get: { store.searchQuery },
+              get: { store.searchInput },
               set: { send(.searchQueryChanged($0)) }
             )
           )
           .textFieldStyle(.roundedBorder)
+
+          HStack(spacing: DesignTokens.Spacing.x2) {
+            Spacer(minLength: .zero)
+
+            Button {
+              send(.searchSubmitted)
+            } label: {
+              Image(systemName: "chevron.up")
+                .font(DesignTokens.Typography.button.font)
+            }
+            .buttonStyle(.bordered)
+            .disabled(store.matchedLineIndices.isEmpty)
+            .accessibilityLabel("이전 검색 결과")
+
+            Button {
+              send(.searchPreviousTapped)
+            } label: {
+              Image(systemName: "chevron.down")
+                .font(DesignTokens.Typography.button.font)
+            }
+            .buttonStyle(.bordered)
+            .disabled(store.matchedLineIndices.isEmpty)
+            .accessibilityLabel("다음 검색 결과")
+          }
+
+          if store.searchQuery.isEmpty == false {
+            Text(searchMatchStatusText)
+              .font(DesignTokens.Typography.caption.font)
+              .foregroundStyle(DesignTokens.Colors.mutedText)
+          }
         }
         .cardContainer()
       }
@@ -135,16 +165,16 @@ public struct DeviceLoggingView: View {
               .foregroundStyle(DesignTokens.Colors.mutedText)
               .frame(maxWidth: .infinity, alignment: .leading)
               .padding(.vertical, DesignTokens.Spacing.x2)
-          } else if store.filteredLogLines.isEmpty {
-            Text("검색 결과가 없습니다.")
-              .font(DesignTokens.Typography.body.font)
-              .foregroundStyle(DesignTokens.Colors.mutedText)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.vertical, DesignTokens.Spacing.x2)
           }
 
-          ForEach(Array(store.filteredLogLines.enumerated()), id: \.offset) { index, line in
-            Text(line)
+          ForEach(Array(store.logLines.enumerated()), id: \.offset) { index, line in
+            Text(
+              highlightedLogLine(
+                line,
+                query: store.searchQuery,
+                isCurrentMatch: index == store.currentMatchedLineIndex
+              )
+            )
               .font(DesignTokens.Typography.caption.font.monospaced())
               .foregroundStyle(DesignTokens.Colors.text)
               .frame(maxWidth: .infinity, alignment: .leading)
@@ -155,35 +185,74 @@ public struct DeviceLoggingView: View {
           Color.clear
             .frame(height: 1)
             .id(bottomAnchorID)
-
-          Color.clear
-            .frame(height: 0)
-            .id(logScrollObserverID)
-            .onAppear {
-              scrollToBottom(proxy, animated: store.filteredLogLines.isEmpty == false)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
       .onAppear {
-        scrollToBottom(proxy, animated: false)
+        scrollForCurrentState(proxy, animated: false)
+      }
+      .onChange(of: store.currentMatchedLineIndex) { _, _ in
+        scrollForCurrentState(proxy, animated: true)
+      }
+      .onChange(of: store.searchNavigationTick) { _, _ in
+        scrollForCurrentState(proxy, animated: true)
+      }
+      .onChange(of: store.searchQuery) { _, _ in
+        scrollForCurrentState(proxy, animated: true)
+      }
+      .onChange(of: store.logLines.count) { _, _ in
+        scrollForCurrentState(proxy, animated: true)
       }
     }
     .cardContainer()
   }
 
-  private struct LogScrollObserverID: Hashable {
-    let count: Int
-    let first: String?
-    let last: String?
+  private func highlightedLogLine(
+    _ line: String,
+    query: String,
+    isCurrentMatch: Bool
+  ) -> AttributedString {
+    var attributed = AttributedString(line)
+    guard query.isEmpty == false else { return attributed }
+
+    var searchRange = line.startIndex..<line.endIndex
+    while
+      let matchedRange = line.range(
+        of: query,
+        options: [.caseInsensitive, .diacriticInsensitive],
+        range: searchRange,
+        locale: .current
+      )
+    {
+      if let attributedRange = Range(matchedRange, in: attributed) {
+        attributed[attributedRange].backgroundColor =
+          isCurrentMatch
+          ? DesignTokens.Colors.warning.opacity(0.45)
+          : DesignTokens.Colors.info.opacity(0.2)
+      }
+
+      searchRange = matchedRange.upperBound..<line.endIndex
+      if searchRange.isEmpty {
+        break
+      }
+    }
+
+    return attributed
   }
 
-  private var logScrollObserverID: LogScrollObserverID {
-    LogScrollObserverID(
-      count: store.filteredLogLines.count,
-      first: store.filteredLogLines.first,
-      last: store.filteredLogLines.last
-    )
+  private var searchMatchStatusText: String {
+    let matchedCount = store.matchedLineIndices.count
+    guard matchedCount > 0 else { return "일치 0개" }
+
+    if
+      let currentMatchPointer = store.currentMatchPointer,
+      store.matchedLineIndices.indices.contains(currentMatchPointer)
+    {
+      let bottomUpPosition = matchedCount - currentMatchPointer
+      return "현재 \(bottomUpPosition)/\(matchedCount) · 일치 \(matchedCount)개"
+    }
+
+    return "일치 \(matchedCount)개"
   }
 
   private var emptyState: some View {
@@ -217,6 +286,29 @@ public struct DeviceLoggingView: View {
       return StatusModel(title: "스트리밍 중", color: DesignTokens.Colors.success)
     }
     return StatusModel(title: "중지됨", color: DesignTokens.Colors.border)
+  }
+
+  private func scrollForCurrentState(_ proxy: ScrollViewProxy, animated: Bool) {
+    if store.searchQuery.isEmpty == false, let currentMatchedLineIndex = store.currentMatchedLineIndex {
+      scrollToMatch(proxy, index: currentMatchedLineIndex, animated: animated)
+      return
+    }
+
+    if store.searchQuery.isEmpty {
+      scrollToBottom(proxy, animated: animated)
+    }
+  }
+
+  private func scrollToMatch(_ proxy: ScrollViewProxy, index: Int, animated: Bool) {
+    DispatchQueue.main.async {
+      if animated {
+        withAnimation(.easeOut(duration: 0.2)) {
+          proxy.scrollTo(index, anchor: .center)
+        }
+      } else {
+        proxy.scrollTo(index, anchor: .center)
+      }
+    }
   }
 
   private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {

@@ -12,16 +12,23 @@ public struct DeviceLoggingFeature {
     var connectedDevice: SimulatorDevice?
     var devices: [SimulatorDevice] = []
     var logLines: [String] = []
+    var searchInput = ""
     var searchQuery = ""
+    var matchedLineIndices: [Int] = []
+    var currentMatchPointer: Int?
+    var searchNavigationTick = 0
     var isLogging = false
     var isPaused = false
     var isViewVisible = false
-    
-    var filteredLogLines: [String] {
-      guard searchQuery.isEmpty == false else { return logLines }
-      return logLines.filter {
-        $0.localizedCaseInsensitiveContains(searchQuery)
+
+    var currentMatchedLineIndex: Int? {
+      guard
+        let currentMatchPointer,
+        matchedLineIndices.indices.contains(currentMatchPointer)
+      else {
+        return nil
       }
+      return matchedLineIndices[currentMatchPointer]
     }
     
     public init() {}
@@ -34,6 +41,7 @@ public struct DeviceLoggingFeature {
     
     @CasePathable
     public enum Local {
+      case applySearchQuery(String)
       case disconnectDevice
       case logReceived(String)
       case loggingStopped
@@ -49,11 +57,14 @@ public struct DeviceLoggingFeature {
       case onDisappear
       case cancelTapped
       case searchQueryChanged(String)
+      case searchPreviousTapped
+      case searchSubmitted
     }
   }
   
   private enum CancelID {
     case logging
+    case searchDebounce
   }
   
   public init() {}
@@ -72,6 +83,11 @@ public struct DeviceLoggingFeature {
         guard oldValue != newValue else { return .none }
         state.isPaused = false
         state.logLines = []
+        state.searchInput = ""
+        state.searchQuery = ""
+        state.matchedLineIndices = []
+        state.currentMatchPointer = nil
+        state.searchNavigationTick = 0
         guard newValue != nil else {
           state.isLogging = false
           return stopLoggingEffect()
@@ -88,6 +104,11 @@ public struct DeviceLoggingFeature {
   
   private func local(_ state: inout State, _ action: Action.Local) -> Effect<Action> {
     switch action {
+    case let .applySearchQuery(query):
+      state.searchQuery = query
+      recomputeSearchMatches(&state, preserveCurrentSelection: false)
+      return .none
+
     case .disconnectDevice:
       state.connectedDevice = nil
       state.isLogging = false
@@ -95,9 +116,15 @@ public struct DeviceLoggingFeature {
       
     case let .logReceived(log):
       state.logLines.append(log)
-      if state.logLines.count > 500 {
-        state.logLines.removeFirst(state.logLines.count - 500)
+      let removedLeadingLineCount = max(state.logLines.count - 500, 0)
+      if removedLeadingLineCount > 0 {
+        state.logLines.removeFirst(removedLeadingLineCount)
       }
+      recomputeSearchMatches(
+        &state,
+        preserveCurrentSelection: true,
+        removedLeadingLineCount: removedLeadingLineCount
+      )
       return .none
       
     case .loggingStopped:
@@ -123,6 +150,7 @@ public struct DeviceLoggingFeature {
     switch action {
     case .clearTapped:
       state.logLines = []
+      recomputeSearchMatches(&state, preserveCurrentSelection: false)
       return .none
       
     case let .connectTapped(device):
@@ -147,16 +175,106 @@ public struct DeviceLoggingFeature {
       return stopLoggingEffect()
       
     case let .searchQueryChanged(query):
-      state.searchQuery = query
-      return .none
+      @Dependency(\.continuousClock) var clock
+      state.searchInput = query
+      return .run { send in
+        try await clock.sleep(for: .milliseconds(300))
+        await send(.local(.applySearchQuery(query)))
+      }
+      .cancellable(id: CancelID.searchDebounce, cancelInFlight: true)
+
+    case .searchPreviousTapped:
+      commitSearchInputIfNeeded(&state)
+      moveSearchPointerTopDown(&state)
+      return .cancel(id: CancelID.searchDebounce)
+
+    case .searchSubmitted:
+      commitSearchInputIfNeeded(&state)
+      advanceSearchPointerBottomUp(&state)
+      return .cancel(id: CancelID.searchDebounce)
     }
+  }
+
+  private func commitSearchInputIfNeeded(_ state: inout State) {
+    guard state.searchInput != state.searchQuery else { return }
+    state.searchQuery = state.searchInput
+    recomputeSearchMatches(&state, preserveCurrentSelection: false)
+  }
+
+  private func recomputeSearchMatches(
+    _ state: inout State,
+    preserveCurrentSelection: Bool,
+    removedLeadingLineCount: Int = 0
+  ) {
+    guard state.searchQuery.isEmpty == false else {
+      state.matchedLineIndices = []
+      state.currentMatchPointer = nil
+      return
+    }
+
+    let previousSelectedLineIndex: Int? = {
+      guard preserveCurrentSelection else { return nil }
+      guard let currentMatchedLineIndex = state.currentMatchedLineIndex else { return nil }
+      let adjustedLineIndex = currentMatchedLineIndex - removedLeadingLineCount
+      return adjustedLineIndex >= 0 ? adjustedLineIndex : nil
+    }()
+
+    state.matchedLineIndices = state.logLines.enumerated().compactMap { index, line in
+      line.localizedCaseInsensitiveContains(state.searchQuery) ? index : nil
+    }
+
+    guard state.matchedLineIndices.isEmpty == false else {
+      state.currentMatchPointer = nil
+      return
+    }
+
+    if
+      let previousSelectedLineIndex,
+      let preservedPointer = state.matchedLineIndices.firstIndex(of: previousSelectedLineIndex)
+    {
+      state.currentMatchPointer = preservedPointer
+      return
+    }
+
+    state.currentMatchPointer = state.matchedLineIndices.count - 1
+  }
+
+  private func advanceSearchPointerBottomUp(_ state: inout State) {
+    state.searchNavigationTick += 1
+    guard state.matchedLineIndices.isEmpty == false else { return }
+    guard let currentMatchPointer = state.currentMatchPointer else {
+      state.currentMatchPointer = state.matchedLineIndices.count - 1
+      return
+    }
+    state.currentMatchPointer =
+      currentMatchPointer > 0
+      ? currentMatchPointer - 1
+      : state.matchedLineIndices.count - 1
+  }
+
+  private func moveSearchPointerTopDown(_ state: inout State) {
+    state.searchNavigationTick += 1
+    guard state.matchedLineIndices.isEmpty == false else { return }
+    guard let currentMatchPointer = state.currentMatchPointer else {
+      state.currentMatchPointer = 0
+      return
+    }
+    state.currentMatchPointer =
+      currentMatchPointer < state.matchedLineIndices.count - 1
+      ? currentMatchPointer + 1
+      : 0
   }
   
   private func startLoggingEffect(_ state: inout State) -> Effect<Action> {
-    guard let runningApp = state.runningApp, state.isPaused == false else { return .none }
-    state.isLogging = true
+    guard
+      let runningApp = state.runningApp,
+      !state.isPaused
+    else {
+      return .none
+    }
     @Dependency(SimulatorClient.self) var simulatorClient
     let predicate = makeLogPredicate(runningApp: runningApp)
+    state.isLogging = true
     return .run { send in
       do {
         let stream: AsyncThrowingStream<String, Error>

@@ -207,26 +207,114 @@ final class DeviceLoggingFeatureTests: XCTestCase {
     XCTAssertEqual(store.state.logLines.last, "로그 500")
   }
 
-  func testFilteredLogLinesReturnsAllWhenQueryIsEmpty() {
-    var state = DeviceLoggingFeature.State()
-    state.logLines = ["Network connected", "Request started"]
-    state.searchQuery = ""
+  func testSearchQueryChangedClearsMatchesWhenQueryIsEmpty() async {
+    let clock = TestClock()
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["Network connected", "request started"]
+    initialState.searchInput = "request"
+    initialState.searchQuery = "request"
+    initialState.matchedLineIndices = [1]
+    initialState.currentMatchPointer = 0
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    } withDependencies: {
+      $0.continuousClock = clock
+    }
 
-    XCTAssertEqual(state.filteredLogLines, ["Network connected", "Request started"])
+    await store.send(.view(.searchQueryChanged(""))) {
+      $0.searchInput = ""
+    }
+    await clock.advance(by: .milliseconds(300))
+    await store.receive(.local(.applySearchQuery(""))) {
+      $0.searchQuery = ""
+      $0.matchedLineIndices = []
+      $0.currentMatchPointer = nil
+    }
   }
 
-  func testSearchQueryFiltersLogsCaseInsensitive() async {
+  func testSearchQueryChangedBuildsMatchesAndFocusesLastMatch() async {
+    let clock = TestClock()
     var initialState = DeviceLoggingFeature.State()
-    initialState.logLines = ["Network connected", "request started", "DB saved"]
+    initialState.logLines = ["abc-1", "other", "ABC-2", "abc-3"]
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    } withDependencies: {
+      $0.continuousClock = clock
+    }
+
+    await store.send(.view(.searchQueryChanged("abc"))) {
+      $0.searchInput = "abc"
+    }
+    await clock.advance(by: .milliseconds(300))
+    await store.receive(.local(.applySearchQuery("abc"))) {
+      $0.searchQuery = "abc"
+      $0.matchedLineIndices = [0, 2, 3]
+      $0.currentMatchPointer = 2
+    }
+  }
+
+  func testSearchSubmittedMovesBottomUpAndWraps() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["abc-1", "other", "abc-2", "abc-3"]
+    initialState.searchInput = "abc"
+    initialState.searchQuery = "abc"
+    initialState.matchedLineIndices = [0, 2, 3]
+    initialState.currentMatchPointer = 2
     let store = TestStore(initialState: initialState) {
       DeviceLoggingFeature().body
     }
-
-    await store.send(.view(.searchQueryChanged("REQUEST"))) {
-      $0.searchQuery = "REQUEST"
+    await store.send(.view(.searchSubmitted)) {
+      $0.currentMatchPointer = 1
+      $0.searchNavigationTick = 1
     }
+    await store.send(.view(.searchSubmitted)) {
+      $0.currentMatchPointer = 0
+      $0.searchNavigationTick = 2
+    }
+    await store.send(.view(.searchSubmitted)) {
+      $0.currentMatchPointer = 2
+      $0.searchNavigationTick = 3
+    }
+  }
 
-    XCTAssertEqual(store.state.filteredLogLines, ["request started"])
+  func testSearchPreviousTappedMovesTopDownAndWraps() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["abc-1", "other", "abc-2", "abc-3"]
+    initialState.searchInput = "abc"
+    initialState.searchQuery = "abc"
+    initialState.matchedLineIndices = [0, 2, 3]
+    initialState.currentMatchPointer = 2
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    }
+    await store.send(.view(.searchPreviousTapped)) {
+      $0.currentMatchPointer = 0
+      $0.searchNavigationTick = 1
+    }
+    await store.send(.view(.searchPreviousTapped)) {
+      $0.currentMatchPointer = 1
+      $0.searchNavigationTick = 2
+    }
+    await store.send(.view(.searchPreviousTapped)) {
+      $0.currentMatchPointer = 2
+      $0.searchNavigationTick = 3
+    }
+  }
+
+  func testSearchSubmittedIncrementsNavigationTickWhenOnlyOneMatch() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = ["only", "other"]
+    initialState.searchInput = "only"
+    initialState.searchQuery = "only"
+    initialState.matchedLineIndices = [0]
+    initialState.currentMatchPointer = 0
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    }
+    await store.send(.view(.searchSubmitted)) {
+      $0.currentMatchPointer = 0
+      $0.searchNavigationTick = 1
+    }
   }
 
   func testClearTappedClearsAllLogsAndKeepsStreamingState() async {
@@ -241,30 +329,50 @@ final class DeviceLoggingFeatureTests: XCTestCase {
 
     await store.send(.view(.clearTapped)) {
       $0.logLines = []
+      $0.matchedLineIndices = []
+      $0.currentMatchPointer = nil
     }
 
-    XCTAssertEqual(store.state.filteredLogLines, [])
     XCTAssertTrue(store.state.isLogging)
     XCTAssertFalse(store.state.isPaused)
     XCTAssertEqual(store.state.searchQuery, "A")
   }
 
-  func testFilteredLogLinesReflectsNewIncomingLogsWithActiveQuery() async {
-    let store = TestStore(initialState: .init()) {
+  func testSearchMatchesReflectNewIncomingLogsWithActiveQuery() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.searchInput = "error"
+    initialState.searchQuery = "error"
+    let store = TestStore(initialState: initialState) {
       DeviceLoggingFeature().body
-    }
-
-    await store.send(.view(.searchQueryChanged("error"))) {
-      $0.searchQuery = "error"
     }
     await store.send(.local(.logReceived("network started"))) {
       $0.logLines = ["network started"]
+      $0.matchedLineIndices = []
+      $0.currentMatchPointer = nil
     }
     await store.send(.local(.logReceived("ERROR timeout"))) {
       $0.logLines = ["network started", "ERROR timeout"]
+      $0.matchedLineIndices = [1]
+      $0.currentMatchPointer = 0
     }
+  }
 
-    XCTAssertEqual(store.state.filteredLogLines, ["ERROR timeout"])
+  func testSearchMatchSelectionSurvivesTrimByAdjustingLineIndex() async {
+    var initialState = DeviceLoggingFeature.State()
+    initialState.logLines = (0..<499).map { "로그 \($0)" } + ["target-log"]
+    initialState.searchInput = "target"
+    initialState.searchQuery = "target"
+    initialState.matchedLineIndices = [499]
+    initialState.currentMatchPointer = 0
+    let store = TestStore(initialState: initialState) {
+      DeviceLoggingFeature().body
+    }
+    await store.send(.local(.logReceived("새 로그")))
+
+    XCTAssertEqual(store.state.logLines.count, 500)
+    XCTAssertEqual(store.state.logLines.last, "새 로그")
+    XCTAssertEqual(store.state.matchedLineIndices, [498])
+    XCTAssertEqual(store.state.currentMatchPointer, 0)
   }
 
   private func makeStateWithRunningApp() -> DeviceLoggingFeature.State {
