@@ -7,7 +7,7 @@ import XCTest
 
 @MainActor
 final class DeviceLoggingFeatureTests: XCTestCase {
-  func testOnAppearStartsLoggingWithSubsystemOrProcessPredicate() async {
+  func testOnAppearStartsLoggingWithSubsystemAndAllOSLogLevelsPredicate() async {
     let recorder = PredicateRecorder()
     let store = TestStore(initialState: makeStateWithRunningApp()) {
       DeviceLoggingFeature().body
@@ -33,7 +33,7 @@ final class DeviceLoggingFeatureTests: XCTestCase {
 
     XCTAssertEqual(
       await recorder.value,
-      "subsystem == \"com.example.demo\" OR process == \"DemoApp\""
+      "subsystem == \"com.example.demo\" AND (messageType == debug OR messageType == info OR messageType == default OR messageType == error OR messageType == fault)"
     )
 
     await store.send(.view(.onDisappear)) {

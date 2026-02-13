@@ -317,8 +317,7 @@ public struct DeviceLoggingFeature {
   
   private func makeLogPredicate(runningApp: RunningApp) -> String {
     let bundleID = escapeLogPredicateValue(runningApp.bundleId)
-    let processName = escapeLogPredicateValue(runningApp.processName)
-    return "subsystem == \"\(bundleID)\" OR process == \"\(processName)\""
+    return "subsystem == \"\(bundleID)\" AND (messageType == debug OR messageType == info OR messageType == default OR messageType == error OR messageType == fault)"
   }
   
   private func escapeLogPredicateValue(_ value: String) -> String {

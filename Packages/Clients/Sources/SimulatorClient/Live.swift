@@ -141,7 +141,8 @@ final actor LogStreamer {
     var arguments = [
       "simctl", "spawn", udid,
       "log", "stream",
-      "--style", "compact"
+      "--style", "compact",
+      "--level", "debug"
     ]
     if let predicate {
       arguments.append(contentsOf: ["--predicate", predicate])
